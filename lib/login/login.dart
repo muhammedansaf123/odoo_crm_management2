@@ -1,13 +1,14 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:flutter/gestures.dart';
+import 'package:odoo_crm_management/initilisation.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:flutter/material.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
-
 import '../dashboard/dashboard.dart';
 
 class LoginPage extends StatefulWidget {
@@ -33,14 +34,15 @@ class _LoginPageState extends State<LoginPage> {
   OdooClient? client;
   MemoryImage? _logo;
   String? companyLogo;
-
+  bool _submitted = false;
   @override
   void initState() {
-    print("4444444444444444dddddddddddddddd");
     super.initState();
-
-    // _urlController.addListener(() {
-    print("9999999999999999999999999dddddddd");
+    _urlController.addListener(() {
+      if (_submitted) {
+        _formKey.currentState!.validate();
+      }
+    });
     setState(() {
       _isUrlValid = _urlController.text.isNotEmpty;
       print(_isUrlValid);
@@ -52,20 +54,40 @@ class _LoginPageState extends State<LoginPage> {
     if (_isUrlValid) {
       _fetchDatabaseList();
     }
-    // });
   }
 
   Future<void> _fetchDatabaseList() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
+      if (_dropdownItems.isEmpty) {
+        _selectedDatabase = null;
+      }
     });
-
+    print("dropdown $_dropdownItems");
+    print("database $_selectedDatabase");
     try {
       final baseUrl = _urlController.text.trim();
-      print(baseUrl);
+      if (!Uri.tryParse(baseUrl)!.hasAbsolutePath) {
+        throw Exception("Invalid URL");
+      }
+
+      print("baseUrl: $baseUrl");
       client = OdooClient(baseUrl);
+
+      final testResponse =
+          await client!.callRPC('/web/webclient/version_info', 'call', {});
+      if (testResponse == null) {
+        throw Exception("Server is unreachable");
+      }
+
       final response = await client!.callRPC('/web/database/list', 'call', {});
-      final dbList = response as List<dynamic>;
+
+      if (response is! List) {
+        throw Exception("Invalid response format");
+      }
+
+      final dbList = response;
 
       setState(() {
         _dropdownItems = dbList
@@ -74,18 +96,19 @@ class _LoginPageState extends State<LoginPage> {
                   child: Text(db),
                 ))
             .toList();
+
         _errorMessage = null;
       });
 
-      if (dbList.isNotEmpty) {
+      if (dbList.isNotEmpty && _selectedDatabase != null) {
         await _fetchDatabaseContent(_selectedDatabase!);
-        // await _fetchDatabaseContent("dec_31");
-        print(_selectedDatabase);
-        print("_selectedDatabase_selectedDatabase");
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error fetching database list: $e';
+        _dropdownItems = []; // Clear dropdown if URL is incorrect
+        _selectedDatabase = null;
+        _logo = null;
+        // _errorMessage = "Failed to fetch database list. Check your URL.";
       });
     } finally {
       setState(() {
@@ -95,56 +118,55 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _fetchDatabaseContent(String dbName) async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      print("Fetching company logo for database: $dbName");
-
-      client = OdooClient(_urlController.text.trim());
-      var session = await client!.authenticate(
-        _selectedDatabase!,
-        // 'dec_31',
-        '1',
-        '1',
-      );
-      print("$session/vvvvvvvvvvvvvvvvvvvvvvv");
-
-      final response = await client?.callKw({
-        'model': 'res.company',
-        'method': 'read',
-        'args': [
-          [1]
-        ],
-        'kwargs': {
-          'fields': ['logo']
-        },
+    if (dbName != "Select a Database") {
+      setState(() {
+        _isLoading = true;
       });
-      print(response);
-      print("responseresponseresponse");
-      if (response != null) {
-        companyLogo = response[0]['logo'];
-        Uint8List? imageData;
-        final logoBase64 = response[0]['logo'];
-        if (logoBase64 != null && logoBase64 != 'false') {
-          imageData = base64Decode(logoBase64);
-          setState(() {
-            _logo = MemoryImage(imageData!);
-          });
+
+      try {
+        print("Fetching company logo for database: $dbName");
+
+        await client!.authenticate(
+          _selectedDatabase!,
+          '1',
+          '1',
+        );
+        final response = await client?.callKw({
+          'model': 'res.company',
+          'method': 'read',
+          'args': [
+            [1]
+          ],
+          'kwargs': {
+            'fields': ['logo']
+          },
+        });
+
+        if (response != null) {
+          print('responseis$response');
+          companyLogo = response[0]['logo'];
+          Uint8List? imageData;
+          final logoBase64 = response[0]['logo'];
+          if (logoBase64 != null && logoBase64 != 'false') {
+            imageData = base64Decode(logoBase64);
+            setState(() {
+              _logo = MemoryImage(imageData!);
+            });
+          }
+        } else {
+          print('No logo found or error in response: $response');
         }
-      } else {
-        print('No logo found or error in response: $response');
+      } catch (e) {
+        setState(() {
+          print(e);
+          _errorMessage = 'Error fetching database content: $e';
+        });
+      } finally {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = null;
+        });
       }
-    } catch (e) {
-      setState(() {
-        print(e);
-        _errorMessage = 'Error fetching database content: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -156,34 +178,76 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        client = OdooClient(_urlController.text.trim());
-        var session = await client!.authenticate(
-          // _selectedDatabase!,
-          'odoo_18',
-          _usernameController.text.trim(),
-          _passwordController.text.trim(),
-        );
+        final baseUrl = _urlController.text.trim();
 
-        print("Login successful: $session");
-        if (session != null) {
-          await _saveSession(session);
-          await addShared();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const Dashboard()),
+        if (!Uri.tryParse(baseUrl)!.hasAbsolutePath) {
+          throw Exception("Please Enter a Valid URL");
+        }
+
+        print("Base URL: $baseUrl");
+
+        // Access the provider instead of creating a new instance
+        final odooClientProvider =
+            Provider.of<OdooClientManager>(context, listen: false);
+
+        // Initialize OdooClient in the provider
+        await odooClientProvider.initializeOdooClientWithUrl(baseUrl);
+
+        final client = odooClientProvider.client;
+        if (client == null) {
+          throw Exception("OdooClient not initialized properly.");
+        }
+
+        // Check if the server is reachable
+        final testResponse =
+            await client.callRPC('/web/webclient/version_info', 'call', {});
+        if (testResponse == null) {
+          throw Exception("Server is unreachable");
+        }
+
+        // Fetch database list
+        final response = await client.callRPC('/web/database/list', 'call', {});
+
+        if (_selectedDatabase != null) {
+          var session = await client.authenticate(
+            _selectedDatabase!,
+            _usernameController.text.trim(),
+            _passwordController.text.trim(),
           );
-        } else {
-          setState(() {
-            _errorMessage = 'Authentication failed: No session returned.';
-          });
+
+          if (session != null) {
+            await odooClientProvider.clear();
+            // Update provider with new session
+            await odooClientProvider.updateSession(session);
+
+            // Navigate to Dashboard
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const Dashboard()),
+            );
+
+            await odooClientProvider.storeUserSession(session, baseUrl);
+          }
         }
       } on OdooException {
         setState(() {
           _errorMessage = 'Invalid username or password.';
         });
+      } on SocketException {
+        setState(() {
+          _errorMessage = 'URL not found. Please check the server address.';
+        });
+      } on HttpException {
+        setState(() {
+          _errorMessage = 'Unable to connect to the server. Please try again.';
+        });
+      } on FormatException {
+        setState(() {
+          _errorMessage = 'URL not found. Please check the server address.';
+        });
       } catch (e) {
         setState(() {
-          _errorMessage = 'Network error: $e';
+          _errorMessage = '$e'.replaceFirst('Exception: ', '');
         });
       } finally {
         setState(() {
@@ -196,28 +260,30 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> addShared() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', true);
-    await prefs.setString('selectedDatabase', 'odoo_18');
+    await prefs.setString('selectedDatabase', _selectedDatabase!);
     // await prefs.setString('selectedDatabase', _selectedItem!);
     await prefs.setString('url', _urlController.text.trim());
   }
 
-  Future<void> _saveSession(OdooSession session) async {
-    final prefs = await SharedPreferences.getInstance();
-    print(companyLogo);
-    print("companyLogocompanyLogocompanyLogo");
-    await prefs.setString('userName', session.userName ?? '');
-    await prefs.setString('userLogin', session.userLogin?.toString() ?? '');
-    await prefs.setInt('userId', session.userId ?? 0);
-    await prefs.setString('sessionId', session.id);
-    await prefs.setString('pass', _passwordController.text.trim());
-    await prefs.setString('company_logo', companyLogo!);
+  String? urlValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Enter a URL';
+    }
 
-    await prefs.setString('serverVersion', session.serverVersion ?? '');
-    await prefs.setString('userLang', session.userLang ?? '');
-    await prefs.setInt('partnerId', session.partnerId ?? 0);
-    await prefs.setInt('companyId', session.companyId ?? 0);
-    await prefs.setBool('isSystem', session.isSystem ?? false);
-    await prefs.setString('userTimezone', session.userTz);
+    final RegExp urlRegExp = RegExp(
+      r'^(https?:\/\/)'
+      r'(([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}'
+      r'|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}))'
+      r'(:\d{1,5})?'
+      r'(\/[^\s]*)?$',
+      caseSensitive: false,
+    );
+
+    if (!urlRegExp.hasMatch(value)) {
+      return 'Enter a valid HTTP or HTTPS URL';
+    }
+
+    return null;
   }
 
   @override
@@ -239,8 +305,11 @@ class _LoginPageState extends State<LoginPage> {
               key: _formKey,
               child: Column(
                 children: [
+                  const SizedBox(
+                    height: 30,
+                  ),
                   CircleAvatar(
-                    radius: 100.0,
+                    radius: 70.0,
                     backgroundColor: Colors.transparent,
                     child: Stack(
                       children: [
@@ -267,13 +336,19 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 30),
                   TextFormField(
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        _fetchDatabaseList();
+                      }
+                    },
+                    validator: urlValidator,
                     controller: _urlController,
                     decoration: InputDecoration(
                       labelText: 'Odoo Server URL',
                       labelStyle: TextStyle(
                         color: Colors.purple[700],
                       ),
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.purple[700]!),
                         borderRadius: BorderRadius.circular(10.0),
@@ -294,6 +369,8 @@ class _LoginPageState extends State<LoginPage> {
                           _selectedDatabase = value;
                         });
                         await _fetchDatabaseContent(_selectedDatabase!);
+                        print(_dropdownItems);
+                        print(_selectedDatabase);
                       },
                       items: _dropdownItems,
                       decoration: InputDecoration(
@@ -320,15 +397,10 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(color: Colors.purple[700]),
                       // ),
                     ),
-                  if (_dropdownItems.isEmpty && !_isLoading)
-                    const Text(
-                      'No databases found. Enter a valid URL.',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  const SizedBox(height: 20),
-                  Align(
+                  if (_dropdownItems.isEmpty && !_isLoading) const SizedBox(),
+                  const Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
+                    child: const Text(
                       "Email",
                       style: TextStyle(
                         fontSize: 16,
@@ -346,7 +418,7 @@ class _LoginPageState extends State<LoginPage> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Email',
                       labelStyle: TextStyle(
                         color: Colors.teal,
@@ -361,11 +433,11 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.email, color: Colors.teal),
                       contentPadding: EdgeInsets.symmetric(vertical: 16.0),
                     ),
-                    style: TextStyle(color: Colors.teal),
+                    style: const TextStyle(color: Colors.teal),
                   ),
 
                   const SizedBox(height: 30),
-                  Align(
+                  const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Password",
@@ -386,7 +458,7 @@ class _LoginPageState extends State<LoginPage> {
                       }
                       return null;
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Password',
                       labelStyle: TextStyle(
                         color: Colors.teal,
@@ -401,7 +473,7 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.lock, color: Colors.teal),
                       contentPadding: EdgeInsets.symmetric(vertical: 16.0),
                     ),
-                    style: TextStyle(color: Colors.teal),
+                    style: const TextStyle(color: Colors.teal),
                   ),
 
                   const SizedBox(height: 20),
@@ -429,7 +501,7 @@ class _LoginPageState extends State<LoginPage> {
                             MaterialPageRoute(
                               builder: (context) => ResetPasswordPage(
                                 url: _urlController.text.trim(),
-                                db: 'odoo_18',
+                                db: _selectedDatabase!,
                               ),
                             ),
                           );
@@ -444,7 +516,25 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 20),
                   // Login Button
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            setState(() {
+                              _submitted = true; // Mark form as submitted
+                            });
+                            if (_dropdownItems.isEmpty) {
+                              _login();
+                            } else if (_dropdownItems.isNotEmpty &&
+                                _selectedDatabase == null) {
+                              setState(() {
+                                _errorMessage =
+                                    "PLease Select a database from the list";
+                              });
+                            } else if (_dropdownItems.isNotEmpty &&
+                                _selectedDatabase != null) {
+                              _login();
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
                       backgroundColor: Colors.teal, // Primary color
@@ -568,16 +658,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 Text.rich(
                   TextSpan(
                     text: "Ensure that you are login with odoo",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                     children: [
-                      TextSpan(
+                      const TextSpan(
                         text:
                             " if Login already click on continue to reset otherwise please login with following link",
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       TextSpan(
                         text: "\n${widget.url}",
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.blue,
                           decoration: TextDecoration.underline,
                         ),

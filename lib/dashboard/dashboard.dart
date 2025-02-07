@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:odoo_crm_management/dashboard/charts/custom_charts.dart';
 import 'package:odoo_crm_management/dashboard/model/crm_model.dart';
+import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Dashboard extends StatefulWidget {
@@ -21,38 +23,12 @@ class _DashboardState extends State<Dashboard>
   int _selectedIndex = 0;
   late TabController _tabController;
   int? userId;
-  OdooClient? client;
   String url = "";
-  MemoryImage? profilePicUrl;
   List<Map<String, dynamic>> _stageData = [];
   List<Map<String, dynamic>> _stageOpportunityData = [];
   String _selectedFilter = 'Count';
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  MemoryImage? companyPicUrl;
-  String? companyLogo;
-
-  List<FlSpot> lineGraphData = [
-    const FlSpot(0, 1),
-    const FlSpot(1, 3),
-    const FlSpot(2, 1),
-    const FlSpot(3, 2),
-  ];
-
-  List<BarChartGroupData> barChartData = [
-    BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 1)]),
-    BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 1)]),
-    BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 1)]),
-  ];
-
-  List<PieChartSectionData> pieChartData = [
-    PieChartSectionData(value: 40, color: Colors.blue),
-    PieChartSectionData(value: 30, color: Colors.green),
-    PieChartSectionData(value: 30, color: Colors.red),
-  ];
-
   List<String> tabs = ["Leads", "Pipeline"];
-
-  // List<String> tabs = ["Leads", "Pipeline", "Forecast", "Team wise report"];
 
   @override
   void initState() {
@@ -60,7 +36,8 @@ class _DashboardState extends State<Dashboard>
     print(_selectedTabIndex);
     print("_selectedTabIndex_selectedTabIndex");
     _tabController = TabController(length: tabs.length, vsync: this);
-    _initializeOdooClient();
+
+    init();
   }
 
   @override
@@ -69,104 +46,30 @@ class _DashboardState extends State<Dashboard>
     super.dispose();
   }
 
-  Future<void> _initializeOdooClient() async {
+  Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? 0;
-    print('userId: $userId');
+    if (prefs.getBool('isLoggedIn') ?? false) {
+      final companyId = prefs.getInt('companyId');
+      final allowedCompaniesStringList =
+          prefs.getStringList('allowedCompanies') ?? [];
+      print('allowedCompanies: $allowedCompaniesStringList');
 
-    url = prefs.getString('url') ?? '';
-    print('url: $url');
+      List<Company> allowedCompanies = [];
 
-    final db = prefs.getString('selectedDatabase') ?? '';
-    print('selectedDatabase: $db');
-
-    final sessionId = prefs.getString('sessionId') ?? '';
-    print('sessionId: $sessionId');
-
-    final serverVersion = prefs.getString('serverVersion') ?? '';
-    print('serverVersion: $serverVersion');
-
-    final userLang = prefs.getString('userLang') ?? '';
-    print('userLang: $userLang');
-
-    final companyId = prefs.getInt('companyId');
-    print('companyId: $companyId');
-
-    final allowedCompaniesStringList =
-        prefs.getStringList('allowedCompanies') ?? [];
-    print('allowedCompanies: $allowedCompaniesStringList');
-
-    List<Company> allowedCompanies = [];
-
-    if (allowedCompaniesStringList.isNotEmpty) {
-      allowedCompanies = allowedCompaniesStringList
-          .map((jsonString) => Company.fromJson(jsonDecode(jsonString)))
-          .toList();
-    }
-    if (url == null || db.isEmpty || sessionId.isEmpty) {
-      throw Exception('URL, database, or session details not set');
-    }
-
-    final session = OdooSession(
-      id: sessionId,
-      userId: prefs.getInt('userId') ?? 0,
-      partnerId: prefs.getInt('partnerId') ?? 0,
-      userLogin: prefs.getString('userLogin') ?? '',
-      userName: prefs.getString('userName') ?? '',
-      userLang: userLang,
-      userTz: '',
-      isSystem: prefs.getBool('isSystem') ?? false,
-      dbName: db,
-      serverVersion: serverVersion,
-      companyId: companyId ?? 1,
-      allowedCompanies: allowedCompanies,
-    );
-
-    client = OdooClient(url!, session);
-    print('client${client}');
-    await getUserProfile();
-    print("working");
-    getLeadCrmReport();
-    getPipelineCrmReport();
-  }
-
-  Future<void> getUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getInt('userId') ?? 0;
-    companyLogo = prefs.getString("company_logo");
-
-    print("companyLogocompanyLogodddddddddddddddd");
-    if (companyLogo != null && companyLogo != 'false') {
-      final imageData = base64Decode(companyLogo!);
-      setState(() {
-        companyPicUrl = MemoryImage(Uint8List.fromList(imageData));
-      });
-    }
-    try {
-      final userDetails = await client?.callKw({
-        'model': 'res.users',
-        'method': 'search_read',
-        'args': [
-          [
-            ['id', '=', userId]
-          ]
-        ],
-        'kwargs': {
-          'fields': ['image_1920'],
-        },
-      });
-      if (userDetails != null && userDetails.isNotEmpty) {
-        final user = userDetails[0];
-        final imageBase64 = user['image_1920'].toString();
-        if (imageBase64 != null && imageBase64 != 'false') {
-          final imageData = base64Decode(imageBase64);
-          setState(() {
-            profilePicUrl = MemoryImage(Uint8List.fromList(imageData));
-          });
-        }
+      if (allowedCompaniesStringList.isNotEmpty) {
+        allowedCompanies = allowedCompaniesStringList
+            .map((jsonString) => Company.fromJson(jsonDecode(jsonString)))
+            .toList();
       }
-    } catch (e) {
-      return;
+
+      final odooClientManager =
+          Provider.of<OdooClientManager>(context, listen: false);
+
+      print("hello${prefs.getBool('isLoggedIn')}");
+      await odooClientManager.initializeOdooClient();
+
+      getLeadCrmReport();
+      getPipelineCrmReport();
     }
   }
 
@@ -174,7 +77,9 @@ class _DashboardState extends State<Dashboard>
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getInt('userId') ?? 0;
     print("userid $userId");
-
+    final odooClientManager =
+        Provider.of<OdooClientManager>(context, listen: false);
+    final client = odooClientManager.client;
     print("Fetching lead details...");
     final leadDetails = await client?.callKw({
       'model': 'crm.lead',
@@ -274,14 +179,17 @@ class _DashboardState extends State<Dashboard>
   Future<void> getPipelineCrmReport() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getInt('userId') ?? 0;
-
+    final odooClientManager =
+        Provider.of<OdooClientManager>(context, listen: false);
+    final client = odooClientManager.client;
     try {
       final opportunityDetails = await client?.callKw({
         'model': 'crm.lead',
         'method': 'search_read',
         'args': [
           [
-            ['type', '=', 'opportunity']
+            ['type', '=', 'opportunity'],
+            ['priority', '=', 2]
           ]
         ],
         'kwargs': {
@@ -470,53 +378,55 @@ class _DashboardState extends State<Dashboard>
                 shape: BoxShape.circle,
                 color: Colors.black.withOpacity(0.2),
               ),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/profile',
+              child: GestureDetector(onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/profile',
+                );
+              }, child: Consumer<OdooClientManager>(
+                builder: (context, provider, child) {
+                  print("Rendering profile pic: ${provider.profilePicUrl}");
+                  return CircleAvatar(
+                    radius: 20.0,
+                    backgroundColor: Colors.grey[400],
+                    child: Stack(
+                      children: [
+                        if (provider.profilePicUrl != null)
+                          Positioned.fill(
+                            child: ClipOval(
+                              child: Image(
+                                image: provider.profilePicUrl!,
+                                fit: BoxFit.cover,
+                                width: 80.0,
+                                height: 80.0,
+                                errorBuilder: (BuildContext context,
+                                    Object exception, StackTrace? stackTrace) {
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 54,
+                                    color: Colors.white,
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        if (provider.profilePicUrl == null)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey[400],
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.person),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   );
                 },
-                child: CircleAvatar(
-                  radius: 20.0,
-                  backgroundColor: Colors.grey[400],
-                  child: Stack(
-                    children: [
-                      if (profilePicUrl != null)
-                        Positioned.fill(
-                          child: ClipOval(
-                            child: Image(
-                              image: profilePicUrl!,
-                              fit: BoxFit.cover,
-                              width: 80.0,
-                              height: 80.0,
-                              errorBuilder: (BuildContext context,
-                                  Object exception, StackTrace? stackTrace) {
-                                return const Icon(
-                                  Icons.person,
-                                  size: 54,
-                                  color: Colors.white,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      if (profilePicUrl == null)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[400],
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.person),
-                            ),
-                          ),
-                        )
-                    ],
-                  ),
-                ),
-              ),
+              )),
             ),
             const SizedBox(width: 10),
           ]),
@@ -531,25 +441,28 @@ class _DashboardState extends State<Dashboard>
                 child: SizedBox(
                   width: 80,
                   height: 80,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: companyPicUrl != null
-                          ? DecorationImage(
-                              image: companyPicUrl!,
-                              // fit: BoxFit.cover,
+                  child: Consumer<OdooClientManager>(
+                      builder: (context, provider, child) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        image: provider.companyPicUrl != null
+                            ? DecorationImage(
+                                image: provider.companyPicUrl!,
+                                // fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: provider.companyPicUrl == null
+                          ? const Center(
+                              child: Icon(
+                                Icons.business,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
                             )
                           : null,
-                    ),
-                    child: companyPicUrl == null
-                        ? const Center(
-                            child: Icon(
-                              Icons.business,
-                              size: 40,
-                              color: Colors.grey,
-                            ),
-                          )
-                        : null,
-                  ),
+                    );
+                  }),
                 ),
               ),
             ),
@@ -704,6 +617,16 @@ class _DashboardState extends State<Dashboard>
                       ],
                     ),
                   ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    _selectedFilter,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
                   Expanded(
                     child: _buildLeadGraph(),
                   ),
@@ -731,6 +654,9 @@ class _DashboardState extends State<Dashboard>
   }
 
   Future<void> _getDiscussVideocallLocation() async {
+    final odooClientManager =
+        Provider.of<OdooClientManager>(context, listen: false);
+    final client = odooClientManager.client;
     try {
       final response = await client?.callKw({
         'model': 'calendar.event',
@@ -839,6 +765,16 @@ class _DashboardState extends State<Dashboard>
               ],
             ),
           ),
+          const SizedBox(
+            height: 10,
+          ),
+          Text(
+            _selectedFilter,
+            style: const TextStyle(fontSize: 18),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
           // Display Selected Graph
           Expanded(
             child: _buildPipelineGraph(),
@@ -859,7 +795,7 @@ class _DashboardState extends State<Dashboard>
   Widget _buildPipelineGraph() {
     switch (_selectedIndex) {
       case 0:
-        return LineChartWidget(
+        return LineChartWidgetcustom(
             stageData: _stageOpportunityData, selectedFilter: _selectedFilter);
 
       case 1:
@@ -879,7 +815,7 @@ class _DashboardState extends State<Dashboard>
   Widget _buildLeadGraph() {
     switch (_selectedIndex) {
       case 0:
-        return LineChartWidget(
+        return LineChartWidgetcustom(
           selectedFilter: _selectedFilter,
           stageData: _stageData,
         );

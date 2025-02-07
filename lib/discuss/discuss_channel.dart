@@ -212,7 +212,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
               //     '/web/content/ir.attachment/$attachment/datas', 'call', {});
               // print(response.runtimeType);
               // print("responseresponseresponse");
-              final attachmentDetails =  await client?.callKw({
+              final attachmentDetails = await client?.callKw({
                 'model': 'ir.attachment',
                 'method': 'search_read',
                 'args': [
@@ -619,12 +619,12 @@ class _DiscussChannelState extends State<DiscussChannel> {
                     ? TextField(
                         controller: _titleController,
                         autofocus: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           border: InputBorder.none,
                           hintText: 'Enter title',
                           hintStyle: TextStyle(color: Colors.white),
                         ),
-                        style: TextStyle(color: Colors.white),
+                        style: const TextStyle(color: Colors.white),
                         // onSubmitted: (_) => _saveTitle(),
                       )
                     : Text(
@@ -665,7 +665,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
           //   },
           // ),
           IconButton(
-            icon: Icon(Icons.person_add, color: Colors.white),
+            icon: const Icon(Icons.person_add, color: Colors.white),
             onPressed: () {
               setState(() {
                 _isVisible = !_isVisible;
@@ -673,7 +673,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
             },
           ),
           IconButton(
-              icon: Icon(Icons.people, color: Colors.white),
+              icon: const Icon(Icons.people, color: Colors.white),
               onPressed: _togglePanel),
         ],
       ),
@@ -770,7 +770,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
                                   avatar: avatar,
                                   audioData: audioData);
                             } else {
-                              return Text(
+                              return const Text(
                                   'Error: Unable to process audio data.');
                             }
                           } else {
@@ -785,7 +785,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
                                       style:
                                           const TextStyle(color: Colors.grey),
                                     ),
-                                    SizedBox(height: 8),
+                                    const SizedBox(height: 8),
                                     Text(
                                       parseHtmlString(body),
                                       textAlign: TextAlign.center,
@@ -914,7 +914,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        const Text(
                           'Channel Members',
                           style: TextStyle(
                               fontSize: 18,
@@ -927,7 +927,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
                               _isPanelVisible = !_isPanelVisible;
                             });
                           },
-                          icon: Icon(Icons.close,
+                          icon: const Icon(Icons.close,
                               color: Colors
                                   .white), // Optional: Color change for icon
                         ),
@@ -972,13 +972,13 @@ class _DiscussChannelState extends State<DiscussChannel> {
             ),
           ),
           AnimatedPositioned(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             top: _isVisible ? 0 : -300,
             left: 0,
             right: 0,
             child: Container(
               color: Colors.white,
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -991,22 +991,22 @@ class _DiscussChannelState extends State<DiscussChannel> {
                             _isVisible = !_isVisible;
                           });
                         },
-                        icon: Icon(Icons.close),
+                        icon: const Icon(Icons.close),
                       ),
                     ],
                   ),
-                  Text(
+                  const Text(
                     'Invite People',
                     style: TextStyle(
                         color: Colors.teal,
                         fontWeight: FontWeight.bold,
                         fontSize: 18),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   if (_existingNameError != '')
                     Text(
                       "The following members already exist: $_existingNameError",
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold, color: Colors.red),
                     ),
                   Padding(
@@ -1048,7 +1048,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
                       checkboxFillColor: Colors.grey,
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
                       if (_selectedPartnerIds != null) {
@@ -1090,7 +1090,7 @@ class _DiscussChannelState extends State<DiscussChannel> {
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Invite to Group Chat',
                       style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold),
@@ -1198,7 +1198,7 @@ class ChatBubble extends StatefulWidget {
 }
 
 class _ChatBubbleState extends State<ChatBubble> {
-  late PlayerController _playerController;
+  PlayerController? _playerController;
   double _currentPosition = 0.0;
   double _totalDuration = 1.0;
   bool _isPlaying = false;
@@ -1231,7 +1231,9 @@ class _ChatBubbleState extends State<ChatBubble> {
 
   @override
   void dispose() {
-    _playerController.dispose();
+    if (_playerController != null) {
+      _playerController!.dispose();
+    }
     super.dispose();
   }
 
@@ -1250,7 +1252,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         print("_tempFilePath_tempFilePath");
         _playerController = Player.file(_tempFilePath, autoPlay: false);
         print(_playerController);
-        _playerController.streams.position.listen((position) {
+        _playerController!.streams.position.listen((position) {
           if (mounted && !_isPositionChanging) {
             setState(() {
               _position = position;
@@ -1261,14 +1263,14 @@ class _ChatBubbleState extends State<ChatBubble> {
             });
           }
         });
-        _playerController.streams.duration.listen((duration) {
+        _playerController!.streams.duration.listen((duration) {
           if (mounted) {
             setState(() {
               _totalDuration = duration.inMilliseconds.toDouble();
             });
           }
         });
-        _playerController.streams.status.listen((status) {
+        _playerController!.streams.status.listen((status) {
           if (mounted) {
             setState(() {
               _isPlaying = status == PlayerStatus.playing;
@@ -1299,7 +1301,7 @@ class _ChatBubbleState extends State<ChatBubble> {
       } else {
         _playbackSpeed = 1.0;
       }
-      _playerController.setSpeed(_playbackSpeed);
+      _playerController!.setSpeed(_playbackSpeed);
     });
   }
 
@@ -1310,7 +1312,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         _currentPlayer?.pause();
       }
       _currentPlayer = _playerController;
-      _playerController.play();
+      _playerController!.play();
       setState(() {
         _isPlaying = true;
       });
@@ -1319,7 +1321,7 @@ class _ChatBubbleState extends State<ChatBubble> {
 
   void _pauseAudio() {
     if (_isPlaying) {
-      _playerController.pause();
+      _playerController!.pause();
       setState(() {
         _isPlaying = false;
       });
@@ -1352,7 +1354,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         SizedBox(
           width: 250.0,
           child: Container(
-            margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+            margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: widget.isSent ? Colors.purple[300] : Colors.teal[200],
@@ -1440,7 +1442,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                               _isPositionChanging = false;
                               _currentPosition = value;
                             });
-                            _playerController
+                            _playerController!
                                 .seek(Duration(milliseconds: value.toInt()));
                           },
                         ),
@@ -1456,7 +1458,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                           child: IconButton(
                             icon: Text(
                               '${_playbackSpeed}x',
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold),
                             ),
