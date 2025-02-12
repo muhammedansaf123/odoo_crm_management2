@@ -15,17 +15,17 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   int? userId;
-
+  List storeddata = [];
   String url = "";
 
   @override
   void initState() {
+    Provider.of<OdooClientManager>(context, listen: false).setstoreddata();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       endDrawer: const CustomDrawer(),
       appBar: AppBar(

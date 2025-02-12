@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:odoo_crm_management/dashboard/provider/dashboard_provider.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OdooClientManager extends ChangeNotifier {
@@ -17,10 +19,12 @@ class OdooClientManager extends ChangeNotifier {
   Map<String, dynamic> _userInfo = {};
   Map<String, dynamic> get userInfo => _userInfo;
   bool? isLoading = true;
+  List<Map<String, dynamic>> storedaccounts = [];
 
   /// Initializes OdooClient with the provided base URL
   Future<void> initializeOdooClientWithUrl(String url) async {
     _client = OdooClient(url);
+    print("notify1");
     notifyListeners();
   }
 
@@ -36,8 +40,6 @@ class OdooClientManager extends ChangeNotifier {
     await prefs.setInt('userId', session.userId);
     await prefs.setInt('companyId', session.companyId);
     await prefs.setBool('isLoggedIn', true);
-
-    notifyListeners();
   }
 
   /// Initializes OdooClient from saved session
@@ -79,86 +81,143 @@ class OdooClientManager extends ChangeNotifier {
     _client = OdooClient(url, session);
 
     getUserProfile();
-    notifyListeners();
+
+    print("notify2");
+  }
+
+  void odooSwitchAccount(int index, BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    String url = prefs.getString('url') ?? '';
+    _client = OdooClient(url);
+    final logindata = storedaccounts[index];
+    var session = await _client!.authenticate(
+      logindata['dbName'],
+      logindata['user'],
+      logindata['password'],
+    );
+
+    if (session != null) {
+      await clear();
+      // Update provider with new session
+      await updateSession(session);
+      print("notify6");
+      _currentsession = session;
+      _client = OdooClient(url, session);
+    }
   }
 
   /// Stores session details for multiple logged-in users
-  Future<void> storeUserSession(OdooSession session, String url) async {
+  Future<void> storeUserSession(
+      OdooSession session,
+      String url,
+      String password,
+      String username,
+      BuildContext context,
+      bool login) async {
     final prefs = await SharedPreferences.getInstance();
-    print("ansaf${1}");
-    // Retrieve existing accounts
-    List<String> accounts = prefs.getStringList('accounts') ?? [];
+    final client = _client;
+    print("profileclient$client");
+    if (client == null) {
+      print("OdooClient not initialized yet");
+      return;
+    }
+    final response = await client.callKw({
+      'model': 'res.company',
+      'method': 'read',
+      'args': [
+        [1]
+      ],
+      'kwargs': {
+        'fields': ['logo']
+      },
+    });
+    int userId = prefs.getInt('userId') ?? 0;
 
-    // Decode stored accounts into a list of maps
-    List<Map<String, dynamic>> storedAccounts = accounts
-        .map((account) => jsonDecode(account) as Map<String, dynamic>)
-        .toList();
-    print("ansaf${2}");
-    // Check if the user already exists in stored accounts
-    bool userExists =
-        storedAccounts.any((account) => account['userId'] == session.userId);
+    final userDetails = await client.callKw({
+      'model': 'res.users',
+      'method': 'search_read',
+      'args': [
+        [
+          ['id', '=', userId]
+        ]
+      ],
+      'kwargs': {
+        'fields': ['name', 'phone', 'email', 'image_1920'],
+      },
+    });
+    _userdetails = userDetails;
 
-    if (!userExists) {
-      // Create user session data
-      Map<String, dynamic> userData = {
-        'url': url,
-        'sessionId': session.id,
-        'dbName': session.dbName,
-        'serverVersion': session.serverVersion,
-        'userLang': session.userLang,
-        'userId': session.userId,
-        'companyId': session.companyId,
-        'userLogin': session.userLogin,
-        'userName': session.userName,
-        'partnerId': session.partnerId,
-        'isSystem': session.isSystem,
-        'allowedCompanies': session.allowedCompanies
-            .map((company) => jsonEncode(company.toJson()))
-            .toList(),
-      };
+    if (userDetails != null && userDetails.isNotEmpty) {
+      final user = userDetails[0];
 
-      // Convert userData to JSON string and store it
-      String userJson = jsonEncode(userData);
-      accounts.add(userJson);
-      await prefs.setStringList('accounts', accounts);
-      print("ansaf${3}");
+      _userInfo = user;
+
+      print('profileclientttttt$user');
+
+      final imageBase64 = user['image_1920'].toString();
+      if (imageBase64.isNotEmpty && imageBase64 != 'false') {
+        final imageData = base64Decode(imageBase64);
+        final imageurl = MemoryImage(Uint8List.fromList(imageData));
+
+        print("ansaf${1}");
+        // Retrieve existing accounts
+        List<String> accounts = prefs.getStringList('accounts') ?? [];
+
+        // Decode stored accounts into a list of maps
+        List<Map<String, dynamic>> storedAccounts = accounts
+            .map((account) => jsonDecode(account) as Map<String, dynamic>)
+            .toList();
+        print("ansaf${2}");
+        // Check if the user already exists in stored accounts
+        bool userExists = storedAccounts
+            .any((account) => account['userId'] == session.userId);
+
+        if (!userExists) {
+          // Create user session data
+          print("ansaf${3}");
+          Map<String, dynamic> userData = {
+            'url': url,
+            'dbName': session.dbName,
+            'imageurl': imageBase64,
+            'password': password,
+            'userName': session.userName,
+            'user': username,
+            'userId': session.userId
+          };
+
+          // Convert userData to JSON string and store it
+          String userJson = jsonEncode(userData);
+          accounts.add(userJson);
+          await prefs.setStringList('accounts', accounts);
+          print("ansaf${4}");
+          if (login == true) {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/loading_screen', (Route<dynamic> route) => false);
+          }
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text("User Already exists")));
+        }
+      }
     }
 
-    print("storedAccounts${accounts.length}");
+    print("ansaf account${storedaccounts}");
+  }
+
+  void setstoreddata() async {
+    storedaccounts = await getStoredAccounts();
+    print("notify3");
+    notifyListeners();
   }
 
   /// Retrieves all stored user sessions
-
   Future<List<Map<String, dynamic>>> getStoredAccounts() async {
     final prefs = await SharedPreferences.getInstance();
     List<String> accounts = prefs.getStringList('accounts') ?? [];
-
+    print("ansaf${accounts.length}");
     return accounts
         .map((account) => jsonDecode(account) as Map<String, dynamic>)
         .toList();
-  }
-
-  /// Switches to a different stored account
-  Future<void> switchAccount(Map<String, dynamic> accountData) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Save selected account details as the active session
-    await prefs.setString('url', accountData['url']);
-    await prefs.setString('sessionId', accountData['sessionId']);
-    await prefs.setString('selectedDatabase', accountData['dbName']);
-    await prefs.setString('serverVersion', accountData['serverVersion']);
-    await prefs.setString('userLang', accountData['userLang']);
-    await prefs.setInt('userId', accountData['userId']);
-    await prefs.setInt('companyId', accountData['companyId']);
-    await prefs.setString('userLogin', accountData['userLogin']);
-    await prefs.setString('userName', accountData['userName']);
-    await prefs.setInt('partnerId', accountData['partnerId']);
-    await prefs.setBool('isSystem', accountData['isSystem']);
-    await prefs.setStringList(
-        'allowedCompanies', accountData['allowedCompanies'].cast<String>());
-
-    // Reinitialize the client with the new session
-    await initializeOdooClient();
   }
 
   /// Fetches user profile and updates UI
@@ -205,7 +264,7 @@ class OdooClientManager extends ChangeNotifier {
 
       if (userDetails != null && userDetails.isNotEmpty) {
         final user = userDetails[0];
-
+         print("ansa$user");
         _userInfo = user;
 
         print('profileclientttttt$user');
@@ -220,43 +279,43 @@ class OdooClientManager extends ChangeNotifier {
       print("Error fetching user profile: $e");
     }
     isLoading = false;
+
     notifyListeners();
+    print("notify4");
   }
 
   Future<void> clear() async {
     _userInfo = {};
     _profilePicUrl = null;
     companyPicUrl = null;
-
-    notifyListeners();
+    storedaccounts = [];
   }
 
   /// Logs out the user
   Future<void> signOut(BuildContext context) async {
+    Navigator.pushNamedAndRemoveUntil(
+        context, '/login', (Route<dynamic> route) => false);
+
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.remove('url');
     await prefs.remove('sessionId');
-    await prefs.remove('selectedDatabase');
+
     await prefs.remove('serverVersion');
     await prefs.remove('userLang');
     await prefs.remove('userId');
     await prefs.remove('companyId');
     await prefs.remove('isLoggedIn');
-//prefs.clear();
+    await prefs.remove('accounts');
+    //  prefs.clear();
     _client = null;
+
     _currentsession = null;
     _userdetails = null;
     _userInfo = {};
     _profilePicUrl = null;
     companyPicUrl = null;
     isLoading = true;
-    notifyListeners();
 
-    // Delay navigation slightly to ensure UI updates before switching screens
-    Future.delayed(Duration(milliseconds: 500), () {
-      Navigator.pushNamedAndRemoveUntil(
-          context, '/login', (Route<dynamic> route) => false);
-    });
+    notifyListeners();
   }
 }

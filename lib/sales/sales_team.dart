@@ -27,8 +27,7 @@ class _SalesTeamState extends State<SalesTeam> {
   int? selectedTeamId;
   MemoryImage? companyPicUrl;
   String? companyLogo;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
+  
 
   @override
   void initState() {
@@ -187,17 +186,7 @@ class _SalesTeamState extends State<SalesTeam> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(
-            Icons.menu,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
         title: Text(
           'Sales Team',
           style: const TextStyle(
@@ -254,19 +243,19 @@ class _SalesTeamState extends State<SalesTeam> {
                     decoration: BoxDecoration(
                       image: companyPicUrl != null
                           ? DecorationImage(
-                        image: companyPicUrl!,
-                        // fit: BoxFit.cover,
-                      )
+                              image: companyPicUrl!,
+                              // fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: companyPicUrl == null
                         ? const Center(
-                      child: Icon(
-                        Icons.business,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
-                    )
+                            child: Icon(
+                              Icons.business,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          )
                         : null,
                   ),
                 ),

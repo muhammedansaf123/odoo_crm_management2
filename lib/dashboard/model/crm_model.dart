@@ -27,6 +27,7 @@ class LeadCrmModel {
 
   /// Factory constructor to create an instance from JSON (Odoo response)
   factory LeadCrmModel.fromJson(Map<String, dynamic> json) {
+  
     return LeadCrmModel(
       id: json['id'] ?? 0,
       createDate:
@@ -46,6 +47,8 @@ class LeadCrmModel {
       proratedRevenue: (json['prorated_revenue'] ?? 0.0).toDouble(),
       recurringRevenue: (json['recurring_revenue'] ?? 0.0).toDouble(),
     );
+
+  
   }
 }
 
@@ -77,6 +80,7 @@ class Opportunity {
   });
 
   factory Opportunity.fromJson(Map<String, dynamic> json) {
+      print("ansaf${json['stage_id']}");
     return Opportunity(
       id: json['id'] ?? 0,
       createDate: DateTime.parse(json['create_date']),

@@ -44,7 +44,6 @@ class _OpportunityState extends State<Opportunity> {
   Timer? _debounce;
   MemoryImage? companyPicUrl;
   String? companyLogo;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -303,17 +302,7 @@ class _OpportunityState extends State<Opportunity> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(
-            Icons.menu,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
         title: isSearching
             ? TextField(
                 controller: searchController,
@@ -627,19 +616,19 @@ class _OpportunityState extends State<Opportunity> {
                     decoration: BoxDecoration(
                       image: companyPicUrl != null
                           ? DecorationImage(
-                        image: companyPicUrl!,
-                        // fit: BoxFit.cover,
-                      )
+                              image: companyPicUrl!,
+                              // fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: companyPicUrl == null
                         ? const Center(
-                      child: Icon(
-                        Icons.business,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
-                    )
+                            child: Icon(
+                              Icons.business,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          )
                         : null,
                   ),
                 ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 class MyPieChart extends StatefulWidget {
   final List<Map<String, dynamic>> stageData;
@@ -13,39 +12,69 @@ class MyPieChart extends StatefulWidget {
 }
 
 class _MyPieChartState extends State<MyPieChart> {
-  int? _selectedIndex; // Store the tapped index
+  int? _selectedIndex;
 
   @override
   Widget build(BuildContext context) {
-    return !_areAllValuesZero()
-        ? SfCircularChart(
-            series: <CircularSeries>[
-              PieSeries<PieChartData, String>(
-                dataSource: _getPieChartData(),
-                xValueMapper: (PieChartData data, _) => data.stage,
-                yValueMapper: (PieChartData data, _) => data.value,
-                pointColorMapper: (PieChartData data, _) => data.color,
-                dataLabelMapper: (PieChartData data, _) =>
-                    '${data.stage}\n${data.value.toInt()}', // Display stage & value
-                dataLabelSettings: const DataLabelSettings(
-                  isVisible: true,
-                  textStyle:
-                      TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                explode: true, // Enable explosion
-                explodeIndex:
-                    _selectedIndex, // Dynamically change explode index
-                onPointTap: (ChartPointDetails details) {
-                  setState(() {
-                    _selectedIndex = details.pointIndex; // Store tapped index
-                  });
-                },
-              ),
-            ],
+    return widget.stageData.isEmpty
+        ? const Center(
+            child: CircularProgressIndicator(),
           )
-        : Container(
-            color: Colors.red,
-          );
+        : !_areAllValuesZero()
+            ? Column(
+                children: [
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Expanded(
+                    child: SfCircularChart(
+                      legend: const Legend(
+                          position: LegendPosition.top, isVisible: true),
+                      tooltipBehavior: TooltipBehavior(enable: true),
+                      series: <CircularSeries>[
+                        PieSeries<PieChartData, String>(
+                          dataSource: _getPieChartData(),
+                          xValueMapper: (PieChartData data, _) => data.stage,
+                          yValueMapper: (PieChartData data, _) => data.value,
+                          pointColorMapper: (PieChartData data, _) =>
+                              data.color,
+                          dataLabelMapper: (PieChartData data, _) =>
+                              '${data.stage}\n${data.value.toInt()}',
+                          dataLabelSettings: const DataLabelSettings(
+                            labelPosition: ChartDataLabelPosition.inside,
+                            isVisible: true,
+                            offset:
+                                Offset(100, 50), // Move labels slightly upward
+                            textStyle: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          explode: true,
+                          explodeIndex: _selectedIndex,
+                          radius: '100%',
+                          strokeColor: Colors.white,
+                          strokeWidth: 3,
+                          onPointTap: (ChartPointDetails details) {
+                            setState(() {
+                              _selectedIndex = details.pointIndex;
+                            });
+                          },
+                          animationDuration: 1500,
+                          enableTooltip: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Center(
+                child: Image.asset(
+                  "assets/odoonodata.png",
+                  scale: 4,
+                ),
+              );
   }
 
   bool _areAllValuesZero() {
@@ -84,16 +113,26 @@ class _MyPieChartState extends State<MyPieChart> {
     };
 
     String dataKey = filterKeyMap[widget.selectedFilter] ?? "count";
-    _areAllValuesZero();
-    print("filtered${_areAllValuesZero()}");
     return widget.stageData.map((data) {
       return PieChartData(
         stage: data['stage'],
         value: (data[dataKey] ?? 0).toDouble(),
-        color: Colors.primaries[
-            widget.stageData.indexOf(data) % Colors.primaries.length],
+        color: _getGradientColor(widget.stageData.indexOf(data)),
       );
     }).toList();
+  }
+
+  Color _getGradientColor(int index) {
+    List<Color> gradientColors = [
+      Colors.blue.shade400,
+      Colors.purple.shade400,
+      Colors.orange.shade400,
+      Colors.green.shade400,
+      Colors.red.shade400,
+      Colors.teal.shade400,
+      Colors.indigo.shade400,
+    ];
+    return gradientColors[index % gradientColors.length];
   }
 }
 
@@ -113,24 +152,67 @@ class BarChartWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SfCartesianChart(
-      primaryXAxis: const CategoryAxis(),
-      series: <CartesianSeries<BarData, String>>[
-        ColumnSeries<BarData, String>(
-          dataSource: _getBarChartData(),
-          xValueMapper: (BarData data, _) => data.stage,
-          yValueMapper: (BarData data, _) => data.value,
-          pointColorMapper: (BarData data, _) => data.color,
-          dataLabelMapper: (BarData data, _) =>
-              '${data.stage}\n${data.value.toInt()}', // Display stage & value
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          onPointTap: (ChartPointDetails details) {},
-        ),
-      ],
-    );
+    return stageData.isEmpty
+        ? const Center(
+            child: CircularProgressIndicator(),
+          )
+        : !_areAllValuesZero()
+            ? Column(
+                children: [
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Expanded(
+                    child: SfCartesianChart(
+                      primaryXAxis: const CategoryAxis(),
+                      series: <CartesianSeries<BarData, String>>[
+                        ColumnSeries<BarData, String>(
+                          dataSource: _getBarChartData(),
+                          xValueMapper: (BarData data, _) => data.stage,
+                          yValueMapper: (BarData data, _) => data.value,
+                          pointColorMapper: (BarData data, _) => data.color,
+                          dataLabelMapper: (BarData data, _) =>
+                              '${data.stage}\n${data.value.toInt()}', // Display stage & value
+                          dataLabelSettings: const DataLabelSettings(
+                            isVisible: true,
+                            textStyle: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          onPointTap: (ChartPointDetails details) {},
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Center(
+                child: Image.asset(
+                  "assets/odoonodata.png",
+                  scale: 4,
+                ),
+              );
+  }
+
+  bool _areAllValuesZero() {
+    Map<String, String> filterKeyMap = {
+      "Days to Close": "total_day_close",
+      "count": "Count",
+      "Expected Revenue": "total_expected_revenue",
+      "Expected MRR": "recurring_revenue_monthly",
+      "Probability": "probability",
+      "Prorated MRR": "recurring_revenue_monthly_prorated",
+      "Prorated Recurring Revenue": "recurring_revenue_prorated",
+      "Prorated Revenue": "prorated_revenue",
+      "Recurring Revenue": "recurring_revenue",
+    };
+
+    String dataKey = filterKeyMap[selectedFilter] ?? "count";
+
+    List<dynamic> values = stageData.map((data) {
+      return (data[dataKey] ?? 0).toDouble();
+    }).toList();
+
+    return values.every((value) => value == 0.0);
   }
 
   List<BarData> _getBarChartData() {
@@ -176,24 +258,67 @@ class LineChartWidgetcustom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SfCartesianChart(
-      primaryXAxis: CategoryAxis(),
-      series: <CartesianSeries>[
-        SplineSeries<LineData, String>(
-          dataSource: _getLineChartData(),
-          xValueMapper: (LineData data, _) => data.stage,
-          yValueMapper: (LineData data, _) => data.value,
-          pointColorMapper: (LineData data, _) => data.color,
-          dataLabelMapper: (LineData data, _) =>
-              '${data.stage}\n${data.value.toInt()}',
-          dataLabelSettings: const DataLabelSettings(
-            isVisible: true,
-            textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          onPointTap: (ChartPointDetails details) {},
-        ),
-      ],
-    );
+    return stageData.isEmpty
+        ? const Center(
+            child: CircularProgressIndicator(),
+          )
+        : !_areAllValuesZero()
+            ? Column(
+                children: [
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Expanded(
+                    child: SfCartesianChart(
+                      primaryXAxis: const CategoryAxis(),
+                      series: <CartesianSeries>[
+                        SplineSeries<LineData, String>(
+                          dataSource: _getLineChartData(),
+                          xValueMapper: (LineData data, _) => data.stage,
+                          yValueMapper: (LineData data, _) => data.value,
+                          pointColorMapper: (LineData data, _) => data.color,
+                          dataLabelMapper: (LineData data, _) =>
+                              '${data.stage}\n${data.value.toInt()}',
+                          dataLabelSettings: const DataLabelSettings(
+                            isVisible: true,
+                            textStyle: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          onPointTap: (ChartPointDetails details) {},
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              )
+            : Center(
+                child: Image.asset(
+                  "assets/odoonodata.png",
+                  scale: 4,
+                ),
+              );
+  }
+
+  bool _areAllValuesZero() {
+    Map<String, String> filterKeyMap = {
+      "Days to Close": "total_day_close",
+      "count": "Count",
+      "Expected Revenue": "total_expected_revenue",
+      "Expected MRR": "recurring_revenue_monthly",
+      "Probability": "probability",
+      "Prorated MRR": "recurring_revenue_monthly_prorated",
+      "Prorated Recurring Revenue": "recurring_revenue_prorated",
+      "Prorated Revenue": "prorated_revenue",
+      "Recurring Revenue": "recurring_revenue",
+    };
+
+    String dataKey = filterKeyMap[selectedFilter] ?? "count";
+
+    List<dynamic> values = stageData.map((data) {
+      return (data[dataKey] ?? 0).toDouble();
+    }).toList();
+
+    return values.every((value) => value == 0.0);
   }
 
   List<LineData> _getLineChartData() {
