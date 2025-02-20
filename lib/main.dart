@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:odoo_crm_management/auth.dart';
 import 'package:odoo_crm_management/dashboard/provider/dashboard_provider.dart';
 import 'package:odoo_crm_management/initilisation.dart';
+import 'package:odoo_crm_management/lead/providers/lead_form_provider.dart';
+import 'package:odoo_crm_management/lead/providers/lead_list_provider.dart';
 import 'package:odoo_crm_management/loading_screen.dart';
+import 'package:odoo_crm_management/opportunity/opportunity_form_provider.dart';
+import 'package:odoo_crm_management/opportunity/opportunity_list_provider.dart';
 import 'package:odoo_crm_management/profile/switch_account.dart';
 
 import 'package:provider/provider.dart';
@@ -26,7 +30,11 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => OdooClientManager()),
+        ChangeNotifierProvider(create: (context) => LeadFormProvider()),
         ChangeNotifierProvider(create: (context) => DashboardProvider()),
+        ChangeNotifierProvider(create: (context) => LeadListProvider()),
+        ChangeNotifierProvider(create: (context) => OpportunityFormProvider()),
+        ChangeNotifierProvider(create: (context) => OpportunityListProvider()),
       ],
       child: MyApp(
         isLoggedIn: isLoggedIn,
@@ -58,7 +66,7 @@ class MyApp extends StatelessWidget {
         '/discuss': (context) => const Discuss(),
         '/discuss_channel': (context) => const DiscussChannel(),
         '/switch_account': (context) => const SwitchAccountLogin(),
-        '/loading_screen': (context) =>  LoadingScreen(),
+        '/loading_screen': (context) => LoadingScreen(),
       },
     );
   }

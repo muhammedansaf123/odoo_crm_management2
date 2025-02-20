@@ -17,8 +17,11 @@ class _MyPieChartState extends State<MyPieChart> {
   @override
   Widget build(BuildContext context) {
     return widget.stageData.isEmpty
-        ? const Center(
-            child: CircularProgressIndicator(),
+        ? Center(
+            child: Image.asset(
+              "assets/odoonodata.png",
+              scale: 4,
+            ),
           )
         : !_areAllValuesZero()
             ? Column(
@@ -153,18 +156,31 @@ class BarChartWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return stageData.isEmpty
-        ? const Center(
-            child: CircularProgressIndicator(),
+? Center(
+            child: Image.asset(
+              "assets/odoonodata.png",
+              scale: 4,
+            ),
           )
         : !_areAllValuesZero()
             ? Column(
                 children: [
-                  const SizedBox(
-                    height: 10,
-                  ),
+                  const SizedBox(height: 10),
                   Expanded(
                     child: SfCartesianChart(
-                      primaryXAxis: const CategoryAxis(),
+                      primaryXAxis: CategoryAxis(
+                        axisLine: const AxisLine(width: 2, color: Colors.grey),
+                        majorGridLines: const MajorGridLines(width: 0),
+                        labelStyle: TextStyle(
+                            fontSize: 14, color: Colors.blueGrey[800]),
+                      ),
+                      primaryYAxis: NumericAxis(
+                        axisLine: const AxisLine(width: 2, color: Colors.grey),
+                        majorGridLines:
+                            MajorGridLines(width: 1, color: Colors.grey[300]),
+                        labelStyle: TextStyle(
+                            fontSize: 14, color: Colors.blueGrey[800]),
+                      ),
                       series: <CartesianSeries<BarData, String>>[
                         ColumnSeries<BarData, String>(
                           dataSource: _getBarChartData(),
@@ -172,13 +188,15 @@ class BarChartWidget extends StatelessWidget {
                           yValueMapper: (BarData data, _) => data.value,
                           pointColorMapper: (BarData data, _) => data.color,
                           dataLabelMapper: (BarData data, _) =>
-                              '${data.stage}\n${data.value.toInt()}', // Display stage & value
+                              '${data.stage}\n${data.value.toInt()}',
                           dataLabelSettings: const DataLabelSettings(
                             isVisible: true,
                             textStyle: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.bold),
                           ),
-                          onPointTap: (ChartPointDetails details) {},
+                          borderRadius: BorderRadius.circular(5),
+                          enableTooltip: true,
+                          animationDuration: 1000,
                         ),
                       ],
                     ),
@@ -186,9 +204,14 @@ class BarChartWidget extends StatelessWidget {
                 ],
               )
             : Center(
-                child: Image.asset(
-                  "assets/odoonodata.png",
-                  scale: 4,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      "assets/odoonodata.png",
+                      scale: 4,
+                    ),
+                  ],
                 ),
               );
   }
@@ -230,12 +253,22 @@ class BarChartWidget extends StatelessWidget {
 
     String dataKey = filterKeyMap[selectedFilter] ?? "count";
 
+    final List<Color> customColors = [
+      Colors.blue.shade400,
+      Colors.purple.shade400,
+      Colors.orange.shade400,
+      Colors.green.shade400,
+      Colors.red.shade400,
+      Colors.teal.shade400,
+      Colors.indigo.shade400,
+    ];
+
     return stageData.map((data) {
       return BarData(
+        id: 0,
         stage: data['stage'],
         value: (data[dataKey] ?? 0).toDouble(),
-        color:
-            Colors.primaries[stageData.indexOf(data) % Colors.primaries.length],
+        color: customColors[stageData.indexOf(data) % customColors.length],
       );
     }).toList();
   }
@@ -245,32 +278,43 @@ class BarData {
   final String stage;
   final double value;
   final Color color;
-
-  BarData({required this.stage, required this.value, required this.color});
+  final int id;
+  BarData({
+    required this.stage,
+    required this.value,
+    required this.color,
+    required this.id,
+  });
 }
 
-class LineChartWidgetcustom extends StatelessWidget {
+class LineChartWidgetCustom extends StatelessWidget {
   final List<Map<String, dynamic>> stageData;
   final String selectedFilter;
 
-  const LineChartWidgetcustom(
+  const LineChartWidgetCustom(
       {super.key, required this.stageData, required this.selectedFilter});
 
   @override
   Widget build(BuildContext context) {
     return stageData.isEmpty
-        ? const Center(
-            child: CircularProgressIndicator(),
+        ? Center(
+            child: Image.asset(
+              "assets/odoonodata.png",
+              scale: 4,
+            ),
           )
         : !_areAllValuesZero()
             ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(
                     height: 10,
                   ),
                   Expanded(
                     child: SfCartesianChart(
+                      backgroundColor: Colors.grey[50], // Light background
                       primaryXAxis: const CategoryAxis(),
+                      primaryYAxis: const NumericAxis(),
                       series: <CartesianSeries>[
                         SplineSeries<LineData, String>(
                           dataSource: _getLineChartData(),
@@ -279,16 +323,22 @@ class LineChartWidgetcustom extends StatelessWidget {
                           pointColorMapper: (LineData data, _) => data.color,
                           dataLabelMapper: (LineData data, _) =>
                               '${data.stage}\n${data.value.toInt()}',
-                          dataLabelSettings: const DataLabelSettings(
+                          dataLabelSettings: DataLabelSettings(
                             isVisible: true,
-                            textStyle: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold),
+                            textStyle: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87),
+                            labelAlignment: ChartDataLabelAlignment.outer,
+                            labelPosition: ChartDataLabelPosition.outside,
+                            connectorLineSettings: ConnectorLineSettings(
+                                width: 1, color: Colors.grey.withOpacity(0.6)),
                           ),
                           onPointTap: (ChartPointDetails details) {},
                         ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               )
             : Center(
@@ -335,15 +385,6 @@ class LineChartWidgetcustom extends StatelessWidget {
     };
 
     String dataKey = filterKeyMap[selectedFilter] ?? "count";
-
-    print("current value is ${stageData.map((data) {
-      return LineData(
-        stage: data['stage'],
-        value: (data[dataKey] ?? 0).toDouble(),
-        color:
-            Colors.primaries[stageData.indexOf(data) % Colors.primaries.length],
-      );
-    }).toList()}");
 
     return stageData.map((data) {
       return LineData(

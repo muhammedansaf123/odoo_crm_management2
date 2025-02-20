@@ -48,6 +48,7 @@ class DashboardDrawer extends StatelessWidget {
                 style:
                     TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
             onTap: () {
+              
               Navigator.pushNamed(context, '/lead');
             },
           ),

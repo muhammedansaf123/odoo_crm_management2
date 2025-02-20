@@ -1,16 +1,15 @@
-import 'dart:convert';
-import 'dart:typed_data';
+
 
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+
 import 'package:odoo_crm_management/dashboard/charts/custom_charts.dart';
 import 'package:odoo_crm_management/dashboard/dashboard_drawer.dart';
-import 'package:odoo_crm_management/dashboard/model/crm_model.dart';
+
 import 'package:odoo_crm_management/dashboard/provider/dashboard_provider.dart';
 import 'package:odoo_crm_management/initilisation.dart';
-import 'package:odoo_rpc/odoo_rpc.dart';
+
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -23,12 +22,14 @@ class _DashboardState extends State<Dashboard>
     with SingleTickerProviderStateMixin {
   List<String> tabs = ["Leads", "Pipeline"];
   late TabController _tabController;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   @override
   void initState() {
     super.initState();
 
     print("_selectedTabIndex_selectedTabIndex");
-    _tabController = TabController(length: tabs.length, vsync: this,initialIndex: 0);
+    _tabController =
+        TabController(length: tabs.length, vsync: this, initialIndex: 0);
 
     Provider.of<DashboardProvider>(context, listen: false).init(context);
   }
@@ -44,15 +45,15 @@ class _DashboardState extends State<Dashboard>
     return Consumer<DashboardProvider>(
         builder: (context, dashboardprovider, child) {
       return Scaffold(
-        
-        appBar: AppBar(centerTitle: true,
-            title: const Text(
-              'Dashboard',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+        key: _scaffoldKey,
+        appBar: AppBar(
+            iconTheme: const IconThemeData(color: Colors.white),
+            centerTitle: true,
+            leading: IconButton(
+                onPressed: () {
+                  _scaffoldKey.currentState!.openDrawer();
+                },
+                icon: const Icon(Icons.menu)),
             bottom: TabBar(
               controller: _tabController,
               onTap: (index) {
@@ -315,7 +316,7 @@ class _DashboardState extends State<Dashboard>
   Widget _buildLeadGraph(DashboardProvider dashboardprovider) {
     switch (dashboardprovider.selectedIndexlead) {
       case 0:
-        return LineChartWidgetcustom(
+        return LineChartWidgetCustom(
           selectedFilter: dashboardprovider.selectedFilter,
           stageData: dashboardprovider.stageData!,
         );
@@ -452,7 +453,7 @@ class _PipelineTabContentState extends State<PipelineTabContent> {
                 builder: (context) {
                   switch (provider.selectedindexpipeline) {
                     case 0:
-                      return LineChartWidgetcustom(
+                      return LineChartWidgetCustom(
                         stageData: provider.stageOpportunityData!,
                         selectedFilter: provider.selectedFilter,
                       );

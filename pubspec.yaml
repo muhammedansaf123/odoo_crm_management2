@@ -31,6 +31,7 @@ dependencies:
   animated_custom_dropdown: ^3.1.1
   audio_waveforms: ^1.0.5
   audioplayers: ^5.2.1
+  badges: ^3.1.2
   cupertino_icons: ^1.0.6
   dropdown_search: ^5.0.2
   ffmpeg_kit_flutter_audio: null
@@ -38,6 +39,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_spinkit: ^5.2.1
+  flutter_svg: ^2.0.17
   flutter_webrtc: ^0.12.6
   font_awesome_flutter: ^10.8.0
   html: ^0.15.5

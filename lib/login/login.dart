@@ -20,8 +20,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _urlController =
-      TextEditingController();
+  final TextEditingController _urlController = TextEditingController();
   final TextEditingController _usernameController =
       TextEditingController(text: "1");
   final TextEditingController _passwordController =
@@ -45,13 +44,6 @@ class _LoginPageState extends State<LoginPage> {
         _formKey.currentState!.validate();
       }
     });
-    setState(() {
-      _isUrlValid = _urlController.text.isNotEmpty;
-      print(_isUrlValid);
-      _dropdownItems.clear();
-      _selectedDatabase = null;
-      _errorMessage = null;
-    });
 
     checkFirstimeLogin();
   }
@@ -59,19 +51,35 @@ class _LoginPageState extends State<LoginPage> {
   //text: "http://10.0.2.2:8018/"
 
   Future<void> _fetchDatabaseList() async {
+    final prefs = await SharedPreferences.getInstance();
     Provider.of<OdooClientManager>(context, listen: false).getStoredAccounts();
+    final url = await prefs.getString(
+      'url',
+    );
+    final db = await prefs.getString(
+      'selectedDatabase',
+    );
+
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      if (_dropdownItems.isEmpty) {
+      if (_showDatabaseFields == false) {
+        _selectedDatabase = db;
+        _urlController.text = url!;
+      }
+      else{
+              if (_dropdownItems.isEmpty) {
         _selectedDatabase = null;
       }
+      }
+      _isLoading = true;
+      _errorMessage = null;
+
     });
     print("dropdown $_dropdownItems");
     print("database $_selectedDatabase");
     try {
-      final baseUrl = _urlController.text.trim();
-      if (!Uri.tryParse(baseUrl)!.hasAbsolutePath) {
+      final baseUrl =
+          _urlController.text.isNotEmpty ? _urlController.text.trim() : url;
+      if (!Uri.tryParse(baseUrl!)!.hasAbsolutePath) {
         throw Exception("Invalid URL");
       }
 
@@ -118,6 +126,15 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     final prefs = await SharedPreferences.getInstance();
+    // final db = await prefs.getString(
+    //   'selectedDatabase',
+    // );
+    // final url = await prefs.getString(
+    //   'url',
+    // );
+    // _urlController.text = url!;
+    // _selectedDatabase = _selectedDatabase ?? db;
+    print(_urlController.text);
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
@@ -125,23 +142,19 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        final url = await prefs.getString(
-          'url',
-        );
-        final baseUrl = _urlController.text.trim();
-//need to be chaned
-        if (!Uri.tryParse(baseUrl)!.hasAbsolutePath) {
+        if (!Uri.tryParse(_urlController.text!)!.hasAbsolutePath) {
           throw Exception("Please Enter a Valid URL");
         }
 
-        print("Base URL: $baseUrl");
+        print("Base URL: ${_urlController.text}");
 
         // Access the provider instead of creating a new instance
         final odooClientProvider =
             Provider.of<OdooClientManager>(context, listen: false);
 
         // Initialize OdooClient in the provider
-        await odooClientProvider.initializeOdooClientWithUrl(baseUrl);
+        await odooClientProvider
+            .initializeOdooClientWithUrl(_urlController.text);
 
         final client = odooClientProvider.client;
         if (client == null) {
@@ -157,15 +170,11 @@ class _LoginPageState extends State<LoginPage> {
 
         // Fetch database list
 
-        final db = await prefs.getString(
-          'selectedDatabase',
-        );
-
         final response = await client.callRPC('/web/database/list', 'call', {});
-        final database = _selectedDatabase ?? db;
-        if (database != null) {
+
+        if (_selectedDatabase != null) {
           var session = await client.authenticate(
-            database!,
+            _selectedDatabase!,
             _usernameController.text.trim(),
             _passwordController.text.trim(),
           );
@@ -173,18 +182,23 @@ class _LoginPageState extends State<LoginPage> {
           if (session != null) {
             await odooClientProvider.clear();
             // Update provider with new session
-            await odooClientProvider.updateSession(session);
+            await odooClientProvider.updateSession(
+              session,
+            );
             print("ansaf is ${odooClientProvider.storedaccounts} ");
             if (odooClientProvider.storedaccounts.isEmpty) {
               print("ansaf added");
               odooClientProvider.storeUserSession(
                   session,
-                  baseUrl,
+                  _urlController.text,
                   _passwordController.text,
                   _usernameController.text,
                   context,
                   false);
             }
+
+            await prefs.setString('selectedDatabase', _selectedDatabase!);
+            await prefs.setString('url', _urlController.text);
 
             Navigator.pushReplacement(
               context,
@@ -214,9 +228,7 @@ class _LoginPageState extends State<LoginPage> {
         });
       } catch (e) {
         setState(() {
-          if (_showDatabaseFields!) {
-            _errorMessage = '$e'.replaceFirst('Exception: ', '');
-          }
+          _errorMessage = '$e'.replaceFirst('Exception: ', '');
         });
       } finally {
         setState(() {
@@ -235,15 +247,11 @@ class _LoginPageState extends State<LoginPage> {
     if (mounted) {
       setState(() {
         _showDatabaseFields = db == null;
-        _fetchDatabaseList();
-        if (db != null) {
-          _selectedDatabase = db;
-        }
-      });
-    }
 
-    if (db == null) {
-      _fetchDatabaseList(); // Ensure this doesn't run inside setState
+        _fetchDatabaseList();
+      });
+    } else {
+      _fetchDatabaseList();
     }
   }
 
@@ -278,9 +286,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    const IconData globe = IconData(
-      0xf68d,
-    );
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -341,16 +346,16 @@ class _LoginPageState extends State<LoginPage> {
                         value!.isEmpty ? 'Enter server URL' : null,
                   ),
                   const SizedBox(height: 15),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Database",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
                   const SizedBox(height: 8),
-                  if (_dropdownItems.isNotEmpty)
+                  if (_dropdownItems.isNotEmpty) ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Database",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                     DropdownButtonFormField<String>(
                       value: _selectedDatabase,
                       onChanged: (value) {
@@ -368,7 +373,8 @@ class _LoginPageState extends State<LoginPage> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
+                  ],
                 ],
 
                 // Email Field

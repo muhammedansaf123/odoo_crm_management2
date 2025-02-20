@@ -1,4 +1,5 @@
-import 'dart:convert';
+
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:odoo_crm_management/dashboard/model/crm_model.dart';
@@ -25,19 +26,6 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> init(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool('isLoggedIn') ?? false) {
-      final companyId = prefs.getInt('companyId');
-      final allowedCompaniesStringList =
-          prefs.getStringList('allowedCompanies') ?? [];
-      print('allowedCompanies: $allowedCompaniesStringList');
-
-      List<Company> allowedCompanies = [];
-
-      if (allowedCompaniesStringList.isNotEmpty) {
-        allowedCompanies = allowedCompaniesStringList
-            .map((jsonString) => Company.fromJson(jsonDecode(jsonString)))
-            .toList();
-      }
-
       final odooClientManager =
           Provider.of<OdooClientManager>(context, listen: false);
 
@@ -159,6 +147,7 @@ class DashboardProvider extends ChangeNotifier {
         ],
         'kwargs': {
           'fields': [
+            'user_id',
             'id',
             'create_date',
             'stage_id',
@@ -170,20 +159,22 @@ class DashboardProvider extends ChangeNotifier {
             'recurring_revenue_prorated',
             'prorated_revenue',
             'recurring_revenue',
+            'date_deadline',
           ],
         },
       });
 
       if (opportunityDetails != null && opportunityDetails.isNotEmpty) {
-        print("opportunityDetails: $opportunityDetails");
+        log("opportunityDetails: $opportunityDetails");
 
         // Convert JSON data to Opportunity list
         List<Opportunity> opportunities = opportunityDetails
             .map<Opportunity>((data) => Opportunity.fromJson(data))
             .toList();
-
+     
         // Aggregated data maps
         Map<String, int> stageCounts = {};
+        
         Map<String, double> stageDayCloseTotal = {};
         Map<String, double> stageExpectedRevenue = {};
         Map<String, double> stageRecurringRevenueMonthly = {};
@@ -197,6 +188,7 @@ class DashboardProvider extends ChangeNotifier {
           String stageName = opportunity.stageName;
 
           stageCounts[stageName] = (stageCounts[stageName] ?? 0) + 1;
+
           stageDayCloseTotal[stageName] =
               (stageDayCloseTotal[stageName] ?? 0) + opportunity.dayClose;
           stageExpectedRevenue[stageName] =

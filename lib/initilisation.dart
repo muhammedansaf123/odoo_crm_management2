@@ -29,6 +29,7 @@ class OdooClientManager extends ChangeNotifier {
   }
 
   /// Updates session after login
+
   Future<void> updateSession(OdooSession session) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -40,6 +41,15 @@ class OdooClientManager extends ChangeNotifier {
     await prefs.setInt('userId', session.userId);
     await prefs.setInt('companyId', session.companyId);
     await prefs.setBool('isLoggedIn', true);
+
+    // Convert allowedCompanies list to JSON
+    List<Map<String, dynamic>> allowedCompaniesJson =
+        session.allowedCompanies.map((company) => company.toJson()).toList();
+
+    await prefs.setString('allowedCompanies', jsonEncode(allowedCompaniesJson));
+
+    print("Saved allowedCompanies: ${jsonEncode(allowedCompaniesJson)}");
+    print("Saved allowedCompanies: $allowedCompaniesJson");
   }
 
   /// Initializes OdooClient from saved session
@@ -53,15 +63,10 @@ class OdooClientManager extends ChangeNotifier {
     String userLang = prefs.getString('userLang') ?? '';
     int userId = prefs.getInt('userId') ?? 0;
     int companyId = prefs.getInt('companyId') ?? 0;
-    final allowedCompaniesStringList =
-        prefs.getStringList('allowedCompanies') ?? [];
-
-    List<Company> allowedCompanies = [];
-    if (allowedCompaniesStringList.isNotEmpty) {
-      allowedCompanies = allowedCompaniesStringList
-          .map((jsonString) => Company.fromJson(jsonDecode(jsonString)))
-          .toList();
-    }
+    String? jsonString = prefs.getString('allowedCompanies');
+    List<dynamic> jsonList = jsonDecode(jsonString!);
+    List<Company> allowedCompanies =
+        jsonList.map((json) => Company.fromJson(json)).toList() ?? [];
 
     final session = OdooSession(
       id: sessionId,
@@ -79,6 +84,7 @@ class OdooClientManager extends ChangeNotifier {
     );
     _currentsession = session;
     _client = OdooClient(url, session);
+    print("ansafallowed${allowedCompanies[0].name}");
 
     getUserProfile();
 
@@ -264,7 +270,7 @@ class OdooClientManager extends ChangeNotifier {
 
       if (userDetails != null && userDetails.isNotEmpty) {
         final user = userDetails[0];
-         print("ansa$user");
+        print("ansa$user");
         _userInfo = user;
 
         print('profileclientttttt$user');
@@ -299,7 +305,6 @@ class OdooClientManager extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.remove('sessionId');
-
     await prefs.remove('serverVersion');
     await prefs.remove('userLang');
     await prefs.remove('userId');
