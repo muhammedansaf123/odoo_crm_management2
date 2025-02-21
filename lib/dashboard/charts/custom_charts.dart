@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:odoo_crm_management/dashboard/provider/dashboard_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class MyPieChart extends StatefulWidget {
   final List<Map<String, dynamic>> stageData;
   final String selectedFilter;
 
-  MyPieChart({required this.stageData, required this.selectedFilter});
+  const MyPieChart(
+      {super.key, required this.stageData, required this.selectedFilter});
 
   @override
   _MyPieChartState createState() => _MyPieChartState();
@@ -16,68 +19,74 @@ class _MyPieChartState extends State<MyPieChart> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.stageData.isEmpty
-        ? Center(
-            child: Image.asset(
-              "assets/odoonodata.png",
-              scale: 4,
-            ),
-          )
-        : !_areAllValuesZero()
-            ? Column(
-                children: [
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  Expanded(
-                    child: SfCircularChart(
-                      legend: const Legend(
-                          position: LegendPosition.top, isVisible: true),
-                      tooltipBehavior: TooltipBehavior(enable: true),
-                      series: <CircularSeries>[
-                        PieSeries<PieChartData, String>(
-                          dataSource: _getPieChartData(),
-                          xValueMapper: (PieChartData data, _) => data.stage,
-                          yValueMapper: (PieChartData data, _) => data.value,
-                          pointColorMapper: (PieChartData data, _) =>
-                              data.color,
-                          dataLabelMapper: (PieChartData data, _) =>
-                              '${data.stage}\n${data.value.toInt()}',
-                          dataLabelSettings: const DataLabelSettings(
-                            labelPosition: ChartDataLabelPosition.inside,
-                            isVisible: true,
-                            offset:
-                                Offset(100, 50), // Move labels slightly upward
-                            textStyle: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          explode: true,
-                          explodeIndex: _selectedIndex,
-                          radius: '100%',
-                          strokeColor: Colors.white,
-                          strokeWidth: 3,
-                          onPointTap: (ChartPointDetails details) {
-                            setState(() {
-                              _selectedIndex = details.pointIndex;
-                            });
-                          },
-                          animationDuration: 1500,
-                          enableTooltip: true,
-                        ),
-                      ],
+    return Consumer<DashboardProvider>(builder: (context, provider, child) {
+      if (provider.isloading) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Colors.teal,
+          ),
+        );
+      } else if (widget.stageData.isEmpty) {
+        return Center(
+          child: Image.asset(
+            "assets/odoonodata.png",
+            scale: 4,
+          ),
+        );
+      } else if (!_areAllValuesZero()) {
+        return Column(
+          children: [
+            const SizedBox(height: 10),
+            Expanded(
+              child: SfCircularChart(
+                legend:
+                    const Legend(position: LegendPosition.top, isVisible: true),
+                tooltipBehavior: TooltipBehavior(enable: true),
+                series: <CircularSeries>[
+                  PieSeries<PieChartData, String>(
+                    dataSource: _getPieChartData(),
+                    xValueMapper: (PieChartData data, _) => data.stage,
+                    yValueMapper: (PieChartData data, _) => data.value,
+                    pointColorMapper: (PieChartData data, _) => data.color,
+                    dataLabelMapper: (PieChartData data, _) =>
+                        '${data.stage}\n${data.value.toInt()}',
+                    dataLabelSettings: const DataLabelSettings(
+                      labelPosition: ChartDataLabelPosition.inside,
+                      isVisible: true,
+                      offset: Offset(100, 50),
+                      textStyle: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
+                    explode: true,
+                    explodeIndex: _selectedIndex,
+                    radius: '100%',
+                    strokeColor: Colors.white,
+                    strokeWidth: 3,
+                    onPointTap: (ChartPointDetails details) {
+                      setState(() {
+                        _selectedIndex = details.pointIndex;
+                      });
+                    },
+                    animationDuration: 1500,
+                    enableTooltip: true,
                   ),
                 ],
-              )
-            : Center(
-                child: Image.asset(
-                  "assets/odoonodata.png",
-                  scale: 4,
-                ),
-              );
+              ),
+            ),
+          ],
+        );
+      } else {
+        return Center(
+          child: Image.asset(
+            "assets/odoonodata.png",
+            scale: 4,
+          ),
+        );
+      }
+    });
   }
 
   bool _areAllValuesZero() {
@@ -151,69 +160,75 @@ class BarChartWidget extends StatelessWidget {
   final List<Map<String, dynamic>> stageData;
   final String selectedFilter;
 
-  BarChartWidget({required this.stageData, required this.selectedFilter});
+  const BarChartWidget(
+      {super.key, required this.stageData, required this.selectedFilter});
 
   @override
   Widget build(BuildContext context) {
-    return stageData.isEmpty
-? Center(
-            child: Image.asset(
-              "assets/odoonodata.png",
-              scale: 4,
-            ),
-          )
-        : !_areAllValuesZero()
-            ? Column(
-                children: [
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: SfCartesianChart(
-                      primaryXAxis: CategoryAxis(
-                        axisLine: const AxisLine(width: 2, color: Colors.grey),
-                        majorGridLines: const MajorGridLines(width: 0),
-                        labelStyle: TextStyle(
-                            fontSize: 14, color: Colors.blueGrey[800]),
-                      ),
-                      primaryYAxis: NumericAxis(
-                        axisLine: const AxisLine(width: 2, color: Colors.grey),
-                        majorGridLines:
-                            MajorGridLines(width: 1, color: Colors.grey[300]),
-                        labelStyle: TextStyle(
-                            fontSize: 14, color: Colors.blueGrey[800]),
-                      ),
-                      series: <CartesianSeries<BarData, String>>[
-                        ColumnSeries<BarData, String>(
-                          dataSource: _getBarChartData(),
-                          xValueMapper: (BarData data, _) => data.stage,
-                          yValueMapper: (BarData data, _) => data.value,
-                          pointColorMapper: (BarData data, _) => data.color,
-                          dataLabelMapper: (BarData data, _) =>
-                              '${data.stage}\n${data.value.toInt()}',
-                          dataLabelSettings: const DataLabelSettings(
-                            isVisible: true,
-                            textStyle: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          borderRadius: BorderRadius.circular(5),
-                          enableTooltip: true,
-                          animationDuration: 1000,
-                        ),
-                      ],
+    return Consumer<DashboardProvider>(builder: (context, provider, child) {
+      if (provider.isloading) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Colors.teal,
+          ),
+        );
+      } else if (stageData.isEmpty) {
+        return Center(
+          child: Image.asset(
+            "assets/odoonodata.png",
+            scale: 4,
+          ),
+        );
+      } else if (!_areAllValuesZero()) {
+        return Column(
+          children: [
+            const SizedBox(height: 10),
+            Expanded(
+              child: SfCartesianChart(
+                primaryXAxis: CategoryAxis(
+                  axisLine: const AxisLine(width: 2, color: Colors.grey),
+                  majorGridLines: const MajorGridLines(width: 0),
+                  labelStyle:
+                      TextStyle(fontSize: 14, color: Colors.blueGrey[800]),
+                ),
+                primaryYAxis: NumericAxis(
+                  axisLine: const AxisLine(width: 2, color: Colors.grey),
+                  majorGridLines:
+                      MajorGridLines(width: 1, color: Colors.grey[300]),
+                  labelStyle:
+                      TextStyle(fontSize: 14, color: Colors.blueGrey[800]),
+                ),
+                series: <CartesianSeries<BarData, String>>[
+                  ColumnSeries<BarData, String>(
+                    dataSource: _getBarChartData(),
+                    xValueMapper: (BarData data, _) => data.stage,
+                    yValueMapper: (BarData data, _) => data.value,
+                    pointColorMapper: (BarData data, _) => data.color,
+                    dataLabelMapper: (BarData data, _) =>
+                        '${data.stage}\n${data.value.toInt()}',
+                    dataLabelSettings: const DataLabelSettings(
+                      isVisible: true,
+                      textStyle:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
+                    borderRadius: BorderRadius.circular(5),
+                    enableTooltip: true,
+                    animationDuration: 1000,
                   ),
                 ],
-              )
-            : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      "assets/odoonodata.png",
-                      scale: 4,
-                    ),
-                  ],
-                ),
-              );
+              ),
+            ),
+          ],
+        );
+      } else {
+        return Center(
+          child: Image.asset(
+            "assets/odoonodata.png",
+            scale: 4,
+          ),
+        );
+      }
+    });
   }
 
   bool _areAllValuesZero() {
@@ -296,57 +311,67 @@ class LineChartWidgetCustom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return stageData.isEmpty
-        ? Center(
-            child: Image.asset(
-              "assets/odoonodata.png",
-              scale: 4,
+    return Consumer<DashboardProvider>(builder: (context, provider, child) {
+      if (provider.isloading) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Colors.teal,
+          ),
+        );
+      } else if (stageData.isEmpty) {
+        return Center(
+          child: Image.asset(
+            "assets/odoonodata.png",
+            scale: 4,
+          ),
+        );
+      } else if (!_areAllValuesZero()) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(
+              height: 10,
             ),
-          )
-        : !_areAllValuesZero()
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  Expanded(
-                    child: SfCartesianChart(
-                      backgroundColor: Colors.grey[50], // Light background
-                      primaryXAxis: const CategoryAxis(),
-                      primaryYAxis: const NumericAxis(),
-                      series: <CartesianSeries>[
-                        SplineSeries<LineData, String>(
-                          dataSource: _getLineChartData(),
-                          xValueMapper: (LineData data, _) => data.stage,
-                          yValueMapper: (LineData data, _) => data.value,
-                          pointColorMapper: (LineData data, _) => data.color,
-                          dataLabelMapper: (LineData data, _) =>
-                              '${data.stage}\n${data.value.toInt()}',
-                          dataLabelSettings: DataLabelSettings(
-                            isVisible: true,
-                            textStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87),
-                            labelAlignment: ChartDataLabelAlignment.outer,
-                            labelPosition: ChartDataLabelPosition.outside,
-                            connectorLineSettings: ConnectorLineSettings(
-                                width: 1, color: Colors.grey.withOpacity(0.6)),
-                          ),
-                          onPointTap: (ChartPointDetails details) {},
-                        ),
-                      ],
+            Expanded(
+              child: SfCartesianChart(
+                backgroundColor: Colors.grey[50], // Light background
+                primaryXAxis: const CategoryAxis(),
+                primaryYAxis: const NumericAxis(),
+                series: <CartesianSeries>[
+                  SplineSeries<LineData, String>(
+                    dataSource: _getLineChartData(),
+                    xValueMapper: (LineData data, _) => data.stage,
+                    yValueMapper: (LineData data, _) => data.value,
+                    pointColorMapper: (LineData data, _) => data.color,
+                    dataLabelMapper: (LineData data, _) =>
+                        '${data.stage}\n${data.value.toInt()}',
+                    dataLabelSettings: DataLabelSettings(
+                      isVisible: true,
+                      textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87),
+                      labelAlignment: ChartDataLabelAlignment.outer,
+                      labelPosition: ChartDataLabelPosition.outside,
+                      connectorLineSettings: ConnectorLineSettings(
+                          width: 1, color: Colors.grey.withOpacity(0.6)),
                     ),
+                    onPointTap: (ChartPointDetails details) {},
                   ),
                 ],
-              )
-            : Center(
-                child: Image.asset(
-                  "assets/odoonodata.png",
-                  scale: 4,
-                ),
-              );
+              ),
+            ),
+          ],
+        );
+      } else {
+        return Center(
+          child: Image.asset(
+            "assets/odoonodata.png",
+            scale: 4,
+          ),
+        );
+      }
+    });
   }
 
   bool _areAllValuesZero() {

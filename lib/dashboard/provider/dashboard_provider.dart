@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -12,7 +11,7 @@ class DashboardProvider extends ChangeNotifier {
   int selectedTabIndex = 0;
   int selectedIndexlead = 0;
   int selectedindexpipeline = 0;
-
+  bool isloading = true;
   int? userId;
   String url = "";
 
@@ -37,6 +36,7 @@ class DashboardProvider extends ChangeNotifier {
 
   Future<void> getLeadCrmReport(OdooClient client) async {
     print("Fetching lead details...");
+
     final leadDetails = await client?.callKw({
       'model': 'crm.lead',
       'method': 'search_read',
@@ -70,7 +70,7 @@ class DashboardProvider extends ChangeNotifier {
         return LeadCrmModel.fromJson(Map<String, dynamic>.from(lead));
       }).toList();
 
-      print("ansaf${leads[0].stageName}");
+     
       Map<String, int> stageCounts = {};
       Map<String, num> stageDayCloseTotal = {};
       Map<String, num> stageExpectedRevenue = {};
@@ -83,7 +83,7 @@ class DashboardProvider extends ChangeNotifier {
 
       for (var lead in leads) {
         String stageName = lead.stageName;
-        print("ansaf$stageName");
+       
 
         stageCounts[stageName] = (stageCounts[stageName] ?? 0) + 1;
 
@@ -125,6 +125,7 @@ class DashboardProvider extends ChangeNotifier {
         };
       }).toList();
       updateStageData();
+      isloading = false;
       notifyListeners();
     } else {
       print("No leads found.");
@@ -165,16 +166,16 @@ class DashboardProvider extends ChangeNotifier {
       });
 
       if (opportunityDetails != null && opportunityDetails.isNotEmpty) {
-        log("opportunityDetails: $opportunityDetails");
+      
 
         // Convert JSON data to Opportunity list
-        List<Opportunity> opportunities = opportunityDetails
-            .map<Opportunity>((data) => Opportunity.fromJson(data))
+        List<OpportunityModel> opportunities = opportunityDetails
+            .map<OpportunityModel>((data) => OpportunityModel.fromJson(data))
             .toList();
-     
+
         // Aggregated data maps
         Map<String, int> stageCounts = {};
-        
+
         Map<String, double> stageDayCloseTotal = {};
         Map<String, double> stageExpectedRevenue = {};
         Map<String, double> stageRecurringRevenueMonthly = {};
@@ -234,6 +235,7 @@ class DashboardProvider extends ChangeNotifier {
           };
         }).toList();
         updateStageData();
+        isloading = false;
         notifyListeners();
         print("hello${stageOpportunityData!.length}");
         print("hello${stageData!.length}");

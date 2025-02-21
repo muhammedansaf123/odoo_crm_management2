@@ -8,7 +8,8 @@ import 'package:html/parser.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/components/bottomsheet_lost.dart';
 import 'package:odoo_crm_management/lead/providers/lead_list_provider.dart';
-import 'package:odoo_crm_management/lead/providers/tester.dart';
+import 'package:odoo_crm_management/models/models.dart';
+
 import 'package:odoo_crm_management/opportunity/opportunity_form.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +17,7 @@ import 'package:provider/provider.dart';
 class LeadFormProvider extends ChangeNotifier {
   int? _userId;
 
-  String _url = "";
+  final String _url = "";
   List<dynamic> _leadTags = [];
   String _conversionAction = "convert";
   String _customerOption = "create";
@@ -32,11 +33,9 @@ class LeadFormProvider extends ChangeNotifier {
   String? _teamname;
   String? _selectedCustomer;
   int? _selectedCustomerId;
-  List<LeadItem> _leadItems = [];
-  List<CustomerItem> _customerItems = [];
-  List<SalesPersonItem> _salesPersonItems = [];
+
   List<LeadItem> selectedLeads = [];
-  LeadItem? _selectedLead;
+
   int? get userId => _userId;
   double? get probablity => _probablity;
   String get url => _url;
@@ -44,27 +43,24 @@ class LeadFormProvider extends ChangeNotifier {
   String get conversionAction => _conversionAction;
   String get customerOption => _customerOption;
   bool? get active => _active;
-
   List<String> get availableLeadNames => _availableLeadNames;
   List<int> get availableLeadIds => _availableLeadIds;
-  final GlobalKey _dropdownKey = GlobalKey();
-
   List<int> get customerIds => _customerIds;
-  final TextEditingController searchcontroller = TextEditingController();
   int get personValue => _personValue!;
   int get teamValue => _teamValue!;
   String? get selectedCustomer => _selectedCustomer;
+  final GlobalKey _dropdownKey = GlobalKey();
+  final TextEditingController searchcontroller = TextEditingController();
 
   Future<void> init(dynamic lead, BuildContext context) async {
-    print("toppp$lead");
     final client =
         Provider.of<OdooClientManager>(context, listen: false).client;
     await getLeadTags(lead, client!);
-
-    await getSalesTeamsAndSalesperson(client);
-    await getCrmLead(client);
-    await getDuplicatedLeads(lead['id'], context);
-    // await fetchStatus(client, lead);
+    if (context.mounted) {
+      Provider.of<OdooClientManager>(context, listen: false).getCrmLead();
+      Provider.of<OdooClientManager>(context, listen: false)
+          .getSalesTeamsAndSalesperson();
+    }
   }
 
   Future<void> getLeadTags(dynamic lead, OdooClient client) async {
@@ -108,7 +104,7 @@ class LeadFormProvider extends ChangeNotifier {
         'fields': ['active', 'probability'],
       },
     });
-    print("ANSAFFFFFFFFFF$response");
+
     _active = response[0]['active'];
     _probablity = response[0]['probability'];
     notifyListeners();
@@ -135,9 +131,14 @@ class LeadFormProvider extends ChangeNotifier {
         : null;
 
     SalesPersonItem? initialSalesPersonItem;
+    final odoomanagerprovider =
+        Provider.of<OdooClientManager>(context, listen: false);
 
+    final allleads = odoomanagerprovider.leadItems;
+    final allcustomer = odoomanagerprovider.customerItems;
+    final allsalesperson = odoomanagerprovider.salesPersonItem;
     if (_personValue != null) {
-      final initialSalesPerson = _salesPersonItems.firstWhere(
+      final initialSalesPerson = allsalesperson.firstWhere(
         (item) => item.id == _personValue,
       );
       initialSalesPersonItem = initialSalesPerson;
@@ -234,127 +235,127 @@ class LeadFormProvider extends ChangeNotifier {
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
-                        Container(
-                          color: Colors.red,
-                          width: double.infinity,
-                          child: DropdownSearch<LeadItem>.multiSelection(
-                            dropdownBuilder: (context, selectedItems) {
-                              if (selectedItems.isEmpty) {
-                                return Text("Select a Lead");
-                              }
-                              return Wrap(
-                                spacing: 8.0, // Adds spacing between items
-                                runSpacing: 4.0, // Adds spacing between lines
-                                children: selectedItems.map<Widget>((item) {
-                                  return OpportunityTile(
-                                    onPressed: () {
-                                      setState(
-                                        () {
-                                          selectedItems.remove(item);
-                                        },
-                                      );
-                                    },
-                                    createdOn: "25/02/225",
-                                    opportunity: item.name,
-                                    contactName: "Ansaf",
-                                    email: "muhammedansaf44@gmail.com",
-                                    stage: "won",
-                                    salesperson: "demo",
-                                  );
-                                }).toList(),
+                        DropdownSearch<LeadItem>.multiSelection(
+                          dropdownBuilder: (context, selectedItems) {
+                            if (selectedItems.isEmpty) {
+                              return const Text("Select a Lead");
+                            }
+                            return Wrap(
+                              spacing: 8.0,
+                              runSpacing: 4.0,
+                              children: selectedItems.map<Widget>((item) {
+                                final formatteddate =
+                                    item.createdon!.split(" ")[0];
+
+                                return OpportunityTile(
+                                  close: true,
+                                  onPressed: () {
+                                    setState(
+                                      () {
+                                        selectedItems.remove(item);
+                                      },
+                                    );
+                                  },
+                                  createdOn: formatteddate,
+                                  opportunity: item.name,
+                                  contactName: item.contactname ?? "N/a",
+                                  email: item.email ?? 'N/a',
+                                  stage: item.stage ?? "N/a",
+                                  salesperson: item.salesperson ?? "N/a",
+                                );
+                              }).toList(),
+                            );
+                          },
+                          key: _dropdownKey,
+                          dropdownButtonProps: const DropdownButtonProps(
+                              padding: EdgeInsets.all(0),
+                              icon: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 20,
+                              )),
+                          items: allleads,
+                          selectedItems: selectedLeads,
+                          itemAsString: (LeadItem? item) => item?.name ?? "",
+                          dropdownDecoratorProps: DropDownDecoratorProps(
+                            dropdownSearchDecoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                                borderSide: BorderSide.none,
+                              ),
+                              hintText: 'Select A Lead',
+                              hintStyle: const TextStyle(
+                                  color: Colors.black, fontSize: 14),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12.0, horizontal: 16.0),
+                            ),
+                          ),
+                          onChanged: _onLeadSelectionChanged,
+                          popupProps: PopupPropsMultiSelection.menu(
+                            itemBuilder: (context, item, isSelected) {
+                              final formatteddate =
+                                  item.createdon!.split(" ")[0];
+
+                              return OpportunityTile(
+                                close: false,
+                                onPressed: () {},
+                                createdOn: formatteddate,
+                                opportunity: item.name,
+                                contactName: item.contactname ?? "N/a",
+                                email: item.email ?? 'N/a',
+                                stage: item.stage ?? "N/a",
+                                salesperson: item.salesperson ?? "N/a",
                               );
                             },
-                            key: _dropdownKey,
-                            dropdownButtonProps: const DropdownButtonProps(
-                                padding: EdgeInsets.all(0),
-                                icon: Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  size: 20,
-                                )),
-                            items: _leadItems,
-                            selectedItems: selectedLeads,
-                            itemAsString: (LeadItem? item) => item?.name ?? "",
-                            dropdownDecoratorProps: DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                  borderSide: BorderSide.none,
+                            showSearchBox: true,
+                            searchFieldProps: TextFieldProps(
+                              controller: searchController,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    searchController.clear();
+                                  },
+                                  icon: const Icon(Icons.close),
                                 ),
+                                hintText: 'Search',
+                                hintStyle: TextStyle(color: Colors.grey[500]),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                  borderSide: BorderSide.none,
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  borderSide: const BorderSide(
+                                      width: 2, color: Color(0xfff1f1f1)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                  borderSide: BorderSide.none,
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  borderSide: const BorderSide(
+                                      width: 2, color: Color(0xfff1f1f1)),
                                 ),
-                                hintText: 'Select A Lead',
-                                hintStyle: const TextStyle(
-                                    color: Colors.black, fontSize: 14),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: const Color(0xfffafafa),
                                 contentPadding: const EdgeInsets.symmetric(
                                     vertical: 12.0, horizontal: 16.0),
                               ),
                             ),
-                            onChanged: _onLeadSelectionChanged,
-                            popupProps: PopupPropsMultiSelection.menu(
-                              itemBuilder: (context, item, isSelected) {
-                                return Container(
-                                    color: isSelected
-                                        ? Colors.grey[100]
-                                        : Colors.transparent,
-                                    child: OpportunityTile(
-                                      onPressed: () {},
-                                      createdOn: "25/02/225",
-                                      opportunity: item.name,
-                                      contactName: "Ansaf",
-                                      email: "muhammedansaf44@gmail.com",
-                                      stage: "won",
-                                      salesperson: "demo",
-                                    ));
-                              },
-                              showSearchBox: true,
-                              searchFieldProps: TextFieldProps(
-                                controller: searchController,
-                                decoration: InputDecoration(
-                                  prefixIcon: const Icon(Icons.search),
-                                  suffixIcon: IconButton(
-                                    onPressed: () {
-                                      searchController.clear();
-                                    },
-                                    icon: const Icon(Icons.close),
-                                  ),
-                                  hintText: 'Search',
-                                  hintStyle: TextStyle(color: Colors.grey[500]),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    borderSide: const BorderSide(
-                                        width: 2, color: Color(0xfff1f1f1)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    borderSide: const BorderSide(
-                                        width: 2, color: Color(0xfff1f1f1)),
-                                  ),
-                                  filled: true,
-                                  fillColor: const Color(0xfffafafa),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 12.0, horizontal: 16.0),
-                                ),
+                            menuProps: MenuProps(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.0),
                               ),
-                              menuProps: MenuProps(
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                backgroundColor: Colors.white,
-                                shadowColor: Colors.grey.withOpacity(0.1),
-                                barrierDismissible: true,
-                                clipBehavior: Clip.antiAlias,
-                                animationDuration:
-                                    const Duration(milliseconds: 200),
-                              ),
+                              backgroundColor: Colors.white,
+                              shadowColor: Colors.grey.withOpacity(0.1),
+                              barrierDismissible: true,
+                              clipBehavior: Clip.antiAlias,
+                              animationDuration:
+                                  const Duration(milliseconds: 200),
                             ),
                           ),
                         )
@@ -374,14 +375,14 @@ class LeadFormProvider extends ChangeNotifier {
                           );
                         },
                         initialItem: initialSalesPersonItem,
-                        items: _salesPersonItems,
+                        items: allsalesperson,
                         listItemBuilder:
                             (context, item, isSelected, onItemSelect) {
                           return GestureDetector(
                             onTap: onItemSelect,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 3),
-                              child: Container(
+                              child: SizedBox(
                                 height: 25,
                                 child: Row(
                                   children: [
@@ -476,7 +477,7 @@ class LeadFormProvider extends ChangeNotifier {
                                 style: TextStyle(color: Colors.black),
                               );
                             },
-                            items: _customerItems, // List<LeadItem>
+                            items: allcustomer, // List<LeadItem>
                             listItemBuilder:
                                 (context, item, isSelected, onItemSelect) {
                               // item is a LeadItem, so we can use its properties directly
@@ -514,7 +515,7 @@ class LeadFormProvider extends ChangeNotifier {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-                                final duplicated_lead_ids =
+                                final duplicatedLeadIds =
                                     selectedLeads.map((item) {
                                   return item.id;
                                 }).toList();
@@ -526,10 +527,10 @@ class LeadFormProvider extends ChangeNotifier {
                                       'team_id': _teamValue,
                                       'name': conversionAction,
                                       'action': customerOption,
-                                      'duplicated_lead_ids': duplicated_lead_ids
+                                      'duplicated_lead_ids': duplicatedLeadIds
                                     },
                                     context);
-                                if (success) {
+                                if (success && context.mounted) {
                                   Navigator.pop(context);
                                   Provider.of<LeadListProvider>(context,
                                           listen: false)
@@ -572,91 +573,8 @@ class LeadFormProvider extends ChangeNotifier {
     );
   }
 
-//function to fetch leaddetails
-  Future<void> getCrmLead(OdooClient client) async {
-    _leadItems.clear();
-    try {
-      final leadDetails = await client.callKw({
-        'model': 'crm.lead',
-        'method': 'search_read',
-        'args': [[]],
-        'kwargs': {
-          'fields': [
-            'name',
-          ],
-        },
-      });
-
-      if (leadDetails != null && leadDetails is List) {
-        for (var item in leadDetails) {
-          _leadItems.add(
-            LeadItem(
-              id: item['id'],
-              name: item['name'],
-            ),
-          );
-        }
-      }
-
-      final customerDetails = await client.callKw({
-        'model': 'res.partner',
-        'method': 'search_read',
-        'args': [[]],
-        'kwargs': {
-          'fields': ['name'],
-        },
-      });
-
-      if (customerDetails != null && customerDetails is List) {
-        for (var item in customerDetails) {
-          _customerItems.add(
-            CustomerItem(
-              id: item['id'],
-              name: item['name'],
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Error fetching data: $e');
-    }
-  }
-
-  Future<void> getSalesTeamsAndSalesperson(OdooClient client) async {
-    try {
-      _salesPersonItems.clear();
-      // Fetch Salespersons
-      final salesPersonResponse = await client.callKw({
-        'model': 'res.users',
-        'method': 'search_read',
-        'args': [],
-        'kwargs': {
-          'fields': ['name', 'sale_team_id'],
-        },
-      });
-      log("ansaffffff$salesPersonResponse ");
-
-      if (salesPersonResponse != null && salesPersonResponse is List) {
-        for (var item in salesPersonResponse) {
-          if (item['sale_team_id'] != false && item['sale_team_id'] is List) {
-            _salesPersonItems.add(
-              SalesPersonItem(
-                teamName: item['sale_team_id'][1],
-                teamid: item['sale_team_id'][0], // Fixed key name
-                id: item['id'],
-                name: item['name'],
-              ),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      print('Error fetching sales teams or salesperson: $e');
-    }
-  }
-
   void restore(OdooClient client, dynamic lead, BuildContext context) async {
-    final response = await client.callKw({
+    await client.callKw({
       'model': 'crm.lead',
       'method': 'toggle_active',
       'args': [
@@ -664,10 +582,11 @@ class LeadFormProvider extends ChangeNotifier {
       ],
       'kwargs': {},
     });
-    print(response);
 
     await fetchStatus(client, lead);
-    Provider.of<LeadListProvider>(context, listen: false).init(context);
+    if (context.mounted) {
+      Provider.of<LeadListProvider>(context, listen: false).init(context);
+    }
   }
 
   Future<void> getDuplicatedLeads(int leadId, BuildContext context) async {
@@ -688,8 +607,6 @@ class LeadFormProvider extends ChangeNotifier {
       'kwargs': {},
     });
 
-    print("ResponseWrite: $responseWrite");
-
     // Now fetch the created record to get the duplicated_lead_ids
     final response = await client.callKw({
       'model': 'crm.lead2opportunity.partner',
@@ -700,8 +617,6 @@ class LeadFormProvider extends ChangeNotifier {
       },
     });
 
-    print("Duplicated Leads Response: $response");
-
     // Extract the list of duplicated lead IDs
     final duplicatedIds = response[0]['duplicated_lead_ids'];
     final leadDetails = await client.callKw({
@@ -710,18 +625,26 @@ class LeadFormProvider extends ChangeNotifier {
       'args': [duplicatedIds],
       'kwargs': {
         'fields': [
-          'id',
-          'name'
-        ], // Ensure these fields are available in your response.
+          'name',
+          'user_id',
+          'email_from',
+          'create_date',
+          'stage_id',
+          'partner_id'
+        ],
       },
     });
 
-// Map the details to a list of LeadItem
     selectedLeads = leadDetails.map<LeadItem>((lead) {
       return LeadItem(
-        id: lead['id'] as int,
-        name: lead['name'] as String,
-      );
+          contactname:
+              lead['partner_id'] == false ? null : lead['partner_id'][1],
+          id: lead['id'],
+          name: lead['name'] == false ? null : lead['name'],
+          email: lead['email_from'] == false ? null : lead['email_from'],
+          createdon: lead['create_date'],
+          salesperson: lead['user_id'] == false ? null : lead['user_id'][1],
+          stage: lead['stage_id'][1]);
     }).toList();
 
     log('leeeeeeeeeeeeeeeeeee$selectedLeads');
@@ -730,11 +653,7 @@ class LeadFormProvider extends ChangeNotifier {
 
   Future<bool> _convertOpportunity(int id, Map<String, dynamic> opportunityList,
       BuildContext context) async {
-    print(opportunityList);
-    print(id);
     try {
-      print(opportunityList);
-      print("opportunityListopportunityList");
       final client =
           Provider.of<OdooClientManager>(context, listen: false).client;
 
@@ -756,8 +675,6 @@ class LeadFormProvider extends ChangeNotifier {
         'kwargs': {},
       });
 
-      print("ResponseWrite: $responseWrite");
-
       if (responseWrite == null) {
         return false; // Return failure if response is null
       }
@@ -777,40 +694,15 @@ class LeadFormProvider extends ChangeNotifier {
         },
       );
 
-      print("Create Response: $response");
-
       if (response != null) {
         return true; // Success
       } else {
         return false; // Failure
       }
     } catch (e) {
-      print("Error converting opportunity: $e");
       return false; // Handle error case
     }
     // return false;
-  }
-
-  Future<void> fetchLostReasons(OdooClient client) async {
-    try {
-      final response = await client.callKw({
-        'model': 'crm.lost.reason',
-        'method': 'search_read',
-        'args': [],
-        'kwargs': {
-          'fields': ['id', 'name'],
-        },
-      });
-
-      print("Lost Reasons Response: $response");
-
-      final lostReasons = List<Map<String, dynamic>>.from(response);
-
-      print("jaggggggu$lostReasons");
-      notifyListeners();
-    } catch (e) {
-      print("Error fetching lost reasons: $e");
-    }
   }
 
   final List<String> options = [
@@ -858,54 +750,18 @@ class LeadFormProvider extends ChangeNotifier {
   }
 }
 
-class LeadItem {
-  final int id;
-  final String name;
-
-  LeadItem({required this.id, required this.name});
-
-  @override
-  bool operator ==(Object other) => other is LeadItem && other.id == id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
-class CustomerItem {
-  final int id;
-  final String name;
-
-  CustomerItem({required this.id, required this.name});
-
-  @override
-  String toString() => name;
-}
-
-class SalesPersonItem {
-  final int? id;
-  final String name;
-  final int teamid;
-  final String teamName;
-  SalesPersonItem(
-      {required this.id,
-      required this.name,
-      required this.teamid,
-      required this.teamName});
-
-  @override
-  String toString() => name;
-}
-
 class OpportunityTile extends StatelessWidget {
-  final String createdOn;
-  final String opportunity;
-  final String contactName;
-  final String email;
-  final String stage;
-  final String salesperson;
+  final String? createdOn;
+  final String? opportunity;
+  final String? contactName;
+  final String? email;
+  final String? stage;
+  final String? salesperson;
+  final bool close;
   final void Function()? onPressed;
   const OpportunityTile({
     super.key,
+    required this.close,
     required this.onPressed,
     required this.createdOn,
     required this.opportunity,
@@ -920,56 +776,56 @@ class OpportunityTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Container(
-        width: double.infinity, // Full width
-        padding: const EdgeInsets.all(8),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(Icons.business, color: Colors.blueAccent, size: 18),
-              const SizedBox(width: 8),
-
-              // Column for main information
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(opportunity,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14)),
-                  Text(contactName,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  Text(email,
-                      style: const TextStyle(color: Colors.blue, fontSize: 12)),
-                ],
-              ),
-
-              const SizedBox(width: 16), // Space between sections
-
-              // Column for metadata
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Created On: $createdOn",
-                      style: const TextStyle(fontSize: 12)),
-                  Text("Stage: $stage",
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    opportunity!,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text("Name: $contactName",
+                    style: const TextStyle(fontSize: 12)),
+                Text("$email", style: const TextStyle(fontSize: 12)),
+                Row(
+                  children: [
+                    Text(
+                      "$stage",
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: stage == "Qualified"
-                              ? Colors.green
-                              : Colors.orange,
-                          fontSize: 12)),
-                  Text("Salesperson: $salesperson",
-                      style: const TextStyle(fontSize: 12)),
-                ],
-              ),
-              IconButton(onPressed: onPressed, icon: Icon(Icons.close))
-            ],
+                        fontWeight: FontWeight.bold,
+                        color: stage == "Won" ? Colors.green : Colors.orange,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const Text(","), // Keeps comma inline
+                    Text("Created On: $createdOn",
+                        style: const TextStyle(fontSize: 11)),
+                  ],
+                ),
+                Text("Salesperson: $salesperson",
+                    style: const TextStyle(fontSize: 12)),
+              ],
+            ),
           ),
-        ),
+          if (close) ...[
+            Positioned(
+                top: -11,
+                right: -11,
+                child: IconButton(
+                    onPressed: onPressed, icon: const Icon(Icons.close)))
+          ]
+        ],
       ),
     );
   }

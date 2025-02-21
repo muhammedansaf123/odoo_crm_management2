@@ -1,104 +1,66 @@
 import 'dart:async';
 import 'dart:developer';
+
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:multiselect_dropdown_flutter/multiselect_dropdown_flutter.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class LeadListProvider extends ChangeNotifier {
-  // Private variables with public getters
-  int? _userId;
+class OpportunityListProvider extends ChangeNotifier {
+  String url = "";
+  List<Map<String, dynamic>> opportunities = [];
+  bool isSearching = false;
+  bool isLoading = false;
+  TextEditingController searchController = TextEditingController();
+  String searchText = '';
+  String selectedOption = '';
+  String valueStatus = '';
+  int? selectedSalespersonId;
+  List<Map<String, dynamic>> salesPersonDetails = [];
+  List<Map<String, dynamic>> salesTeamDetails = [];
+  List<Map<String, dynamic>> crmTagDetails = [];
+  Map<String, dynamic>? selectedSalesperson;
+  Map<String, dynamic>? selectedSalesTeam;
+  List<Map<String, dynamic>> selectedCRMTags = [];
+  int? selectedPriority;
+  final int limit = 20;
+  bool hasMoreData = true;
+  int offset = 0;
+  Timer? _debounce;
 
- final String _url = "";
-  List<Map<dynamic, dynamic>> _leads = [];
-  bool _isSearching = false;
-  bool _isLoading = false;
-  final TextEditingController searchController = TextEditingController();
-  String _searchText = '';
- final String _selectedOption = '';
- final String _valueStatus = ''; List<Map<String, dynamic>> _crmTagDetails = [];
-  int? _selectedSalespersonId;
-  List<Map<String, dynamic>> _salesPersonDetails = [];
-  List<Map<String, dynamic>> _salesTeamDetails = [];
- 
-  Map<String, dynamic>? _selectedSalesperson;
-  Map<String, dynamic>? _selectedSalesTeam;
- final List<Map<String, dynamic>> _selectedCRMTags = [];
-  int? _selectedPriority;
-  final ScrollController _scrollController = ScrollController();
-  final int _limit = 20;
-  bool _hasMoreData = true;
-  int _offset = 0;
+  ScrollController scrollController = ScrollController();
 
-  // Getters
-  int? get userId => _userId;
+  Future<void> initializeopportunitylist(BuildContext context) async {
+    scrollController.addListener(_scrollListener);
+    final clinetprovider =
+        Provider.of<OdooClientManager>(context, listen: false);
 
-  String get url => _url;
-  List<Map<dynamic, dynamic>> get leads => _leads;
-
-  bool get isLoading => _isLoading;
-
-  String get selectedOption => _selectedOption;
-  bool get isSearching => _isSearching;
-  String get searchText => _searchText;
-  String get valueStatus => _valueStatus;
-  List<Map<String, dynamic>> get crmTagDetails => _crmTagDetails;
-  int? get selectedSalespersonId => _selectedSalespersonId;
-  List<Map<String, dynamic>> get salesPersonDetails => _salesPersonDetails;
-  List<Map<String, dynamic>> get salesTeamDetails => _salesTeamDetails;
-  Map<String, dynamic>? get selectedSalesperson => _selectedSalesperson;
-  Map<String, dynamic>? get selectedSalesTeam => _selectedSalesTeam;
-  List<Map<String, dynamic>> get selectedCRMTags => _selectedCRMTags;
-  int? get selectedPriority => _selectedPriority;
-  ScrollController get scrollController => _scrollController;
-  int get limit => _limit;
-  bool get hasMoreData => _hasMoreData;
-  int get offset => _offset;
-
-  /// Initialize the provider by fetching leads, salespersons, teams and tags.
-  Future<void> init(BuildContext context) async {
-    final client =
-        Provider.of<OdooClientManager>(context, listen: false).client;
-  
-    await getLeads(context: context);
-    await getSalesPerson(client!);
-    await getSalesTeam(client);
-    await getTags(client);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void clear() {
-    leads.clear();
-    notifyListeners();
+    await getOpportunities(context: context);
+    await getSalesPerson(clinetprovider.client!);
+    await getSalesTeam(clinetprovider.client!);
+    await getTags(clinetprovider.client!, context);
   }
 
   void _scrollListener() {
-    if (_scrollController.offset >=
-            _scrollController.position.maxScrollExtent &&
-        !_scrollController.position.outOfRange &&
-        !_isLoading &&
-        _hasMoreData) {
-      
-      // Optionally call getLeads(fromScroll: true) here
-      // getLeads(fromScroll: true);
+    if (scrollController.offset >= scrollController.position.maxScrollExtent &&
+        !scrollController.position.outOfRange &&
+        !isLoading &&
+        hasMoreData) {
+      print("isLoading = false;isLoading = false;");
+      //   getOpportunities(fromScroll: true);
     }
   }
 
-  Future<void> getSalesPerson(OdooClient client) async {
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getInt('userId') ?? 0;
+  void controllerdispose() {
+    scrollController.removeListener(_scrollListener);
+    scrollController.dispose();
+  }
 
+  Future<void> getSalesPerson(OdooClient client) async {
     try {
-      final response = await client.callKw({
+      final response = await client?.callKw({
         'model': 'res.users',
         'method': 'search_read',
         'args': [[]],
@@ -107,51 +69,16 @@ class LeadListProvider extends ChangeNotifier {
         },
       });
 
-      _salesPersonDetails = List<Map<String, dynamic>>.from(response ?? []);
+      salesPersonDetails = List<Map<String, dynamic>>.from(response ?? []);
       notifyListeners();
     } catch (e) {
       print('Error fetching salespersons: $e');
     }
   }
 
-  void clearText(BuildContext context) {
-    _isSearching = false;
-    searchController.clear();
-    _searchText = '';
-    getLeads(context: context);
-    notifyListeners();
-  }
-
-  void setIsearch() {
-    _isSearching = true;
-    notifyListeners();
-  }
-
-  void timer(String query, BuildContext context) {
-    _searchText = query;
-    _offset = 0;
-    _hasMoreData = true;
-    _searchText = query;
-    getLeads(context: context);
-    notifyListeners();
-  }
-
-  void salespersonSelect(dynamic value, String type) {
-    if (type == "person") {
-      _selectedSalesperson = value;
-    } else if (type == "team") {
-      _selectedSalesTeam = value;
-    }
-
-    notifyListeners();
-  }
-
   Future<void> getSalesTeam(OdooClient client) async {
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getInt('userId') ?? 0;
-
     try {
-      final response = await client.callKw({
+      final response = await client?.callKw({
         'model': 'crm.team',
         'method': 'search_read',
         'args': [[]],
@@ -160,19 +87,16 @@ class LeadListProvider extends ChangeNotifier {
         },
       });
 
-      _salesTeamDetails = List<Map<String, dynamic>>.from(response ?? []);
+      salesTeamDetails = List<Map<String, dynamic>>.from(response ?? []);
       notifyListeners();
     } catch (e) {
-      print('Error fetching sales teams: $e');
+      print('Error fetching salespersons: $e');
     }
   }
 
-  Future<void> getTags(OdooClient client) async {
-    final prefs = await SharedPreferences.getInstance();
-    _userId = prefs.getInt('userId') ?? 0;
-
+  Future<void> getTags(OdooClient client, BuildContext) async {
     try {
-      final response = await client.callKw({
+      final response = await client?.callKw({
         'model': 'crm.tag',
         'method': 'search_read',
         'args': [[]],
@@ -181,148 +105,138 @@ class LeadListProvider extends ChangeNotifier {
         },
       });
 
-      _crmTagDetails = List<Map<String, dynamic>>.from(response ?? []);
+      crmTagDetails = List<Map<String, dynamic>>.from(response ?? []);
       notifyListeners();
     } catch (e) {
-      print('Error fetching tags: $e');
+      print('Error fetching salespersons: $e');
     }
   }
 
-  Future<void> getLeads(
-      {bool fromScroll = false, BuildContext? context}) async {
-    if (!fromScroll) {
-      _isLoading = true;
-    }
+  Future<void> getOpportunities({
+    bool fromScroll = false,
+    BuildContext? context,
+  }) async {
+    log("print1");
+    isLoading = true;
 
     final clientprovider =
         Provider.of<OdooClientManager>(context!, listen: false);
     final client = clientprovider.client;
-    _leads.clear();
-    log("print1");
 
-    final List<dynamic> filters = [
-      ['type', '=', 'lead'],
-      [
-        'active',
-        '=',
-        [true, false],
-      ],
-    ];
-    if (_selectedSalesperson != null) {
+    try {
       log("print2");
-      filters.add(['user_id', '=', _selectedSalesperson!['id']]);
-    }
-    if (_selectedSalesTeam != null) {
-      log("print3");
-      filters.add(['team_id', '=', _selectedSalesTeam!['id']]);
-    }
-    if (_selectedPriority != null) {
-      log("print4");
-      filters.add(['priority', '=', _selectedPriority]);
-    }
-    if (selectedCRMTags.isNotEmpty) {
-      log("print5");
-      List<int> selectedIds =
-          selectedCRMTags.map((tag) => tag['id'] as int).toList();
 
-      filters.add(['tag_ids', 'in', selectedIds]);
-    }
-
-    if (searchText.isNotEmpty) {
-      log("print6");
-
-      filters.add('|');
-      filters.add(['name', 'ilike', searchText]);
-      filters.add(['team_id', 'ilike', searchText]);
-    }
-    print(filters);
-    log("print7");
-    final leadDetailsraw = await client?.callKw({
-      'model': 'crm.lead',
-      'method': 'search_read',
-      'args': [filters],
-      'kwargs': {
-        'fields': [
-          'name',
-          'email_from',
-          'city',
-          'country_id',
-          'team_id',
-          'user_id',
-          'probability',
-          'partner_id',
-          'partner_name',
-          'street',
-          'contact_name',
-          'email_cc',
-          'function',
-          'phone',
-          'mobile',
-          'priority',
-          'tag_ids',
-          'campaign_id',
-          'medium_id',
-          'source_id',
-          'referred',
-          'date_open',
-          'date_closed',
-          'message_bounce',
-          'description',
-          'duplicate_lead_ids',
+      final List<dynamic> filters = [
+        ['type', '=', 'opportunity'],
+        [
           'active',
-        ],
-      },
-    });
+          '=',
+          [true, false]
+        ]
+      ];
 
-    log("print8$leadDetailsraw");
+      if (selectedSalesperson != null) {
+        filters.add(['user_id', '=', selectedSalesperson!['id']]);
+      }
+      if (selectedSalesTeam != null) {
+        filters.add(['team_id', '=', selectedSalesTeam!['id']]);
+      }
+      if (selectedPriority != null) {
+        filters.add(['priority', '=', selectedPriority]);
+      }
+      if (selectedCRMTags.isNotEmpty) {
+        List<int> selectedIds =
+            selectedCRMTags.map((tag) => tag['id'] as int).toList();
+        filters.add(['tag_ids', 'in', selectedIds]);
+      }
+      if (searchText.isNotEmpty) {
+        filters.add('|');
+        filters.add(['name', 'ilike', searchText]);
+        filters.add(['team_id', 'ilike', searchText]);
+      }
 
-    if (leadDetailsraw != null && leadDetailsraw is List) {
-      log("print9");
-      final leadDetails = leadDetailsraw.map((lead) {
-        // Convert false values to null
-        return lead.map((key, value) {
-          return MapEntry(key, value == false ? null : value);
-        });
-      }).toList();
+      log("print3");
 
-      if (leadDetails.isNotEmpty) {
-        log("print10");
-        List<Map<dynamic, dynamic>> updatedLeads = [];
-        for (var lead in leadDetails) {
-          log("print11");
-          if (lead['user_id'] is List && lead['user_id'].isNotEmpty) {
-            lead['user_image'] = null;
-          } else {
-            log("print12");
-            lead['user_image'] = null;
-          }
-          log("print13");
-          updatedLeads.add(lead);
-        }
-        if (_offset == 0 || searchText.isNotEmpty) {
-          log("print14");
-          _leads = updatedLeads;
+      final opportunityDetails = await client?.callKw({
+        'model': 'crm.lead',
+        'method': 'search_read',
+        'args': [filters],
+        'kwargs': {
+          'fields': [
+            'name',
+            'phone',
+            'mobile',
+            'email_from',
+            'city',
+            'country_id',
+            'team_id',
+            'user_id',
+            'probability',
+            'partner_id',
+            'priority',
+            'tag_ids',
+            'date_open',
+            'date_closed',
+            'description',
+            'contact_name',
+            'active',
+            'stage_id'
+          ],
+        },
+      });
+
+      if (opportunityDetails != null && opportunityDetails is List) {
+        log("print4");
+
+        /// ✅ **Call Separate Mapping Function**
+        List<Map<String, dynamic>> updatedOpportunities =
+            mapOpportunitiesimagesnull(opportunityDetails);
+
+        if (offset != 0 || searchText.isEmpty) {
+          log("print8");
+          opportunities = updatedOpportunities;
         } else {
-          log("print15");
-          _leads.addAll(updatedLeads);
+          log("print9");
+          opportunities = updatedOpportunities;
         }
 
-        _isLoading = false;
+        log("print10");
+        opportunities = opportunities.toSet().toList();
+        isLoading = false;
         notifyListeners();
 
         if (searchText.isEmpty) {
-          log("print17");
-          _offset += _limit;
+          log("print11");
+          offset += limit;
         }
-        print(_leads.length);
       } else {
-        log("print18$leads");
-        _hasMoreData = false;
-        _isLoading = false;
-
+        log("print12");
+        hasMoreData = false;
+        isLoading = false;
         notifyListeners();
       }
+    } catch (e) {
+      log("Error fetching opportunities: $e");
+      isLoading = false;
+      notifyListeners();
     }
+  }
+
+  /// ✅ **Extracted Function for Mapping Opportunities**
+  List<Map<String, dynamic>> mapOpportunitiesimagesnull(
+      List<dynamic> opportunityDetails) {
+    List<Map<String, dynamic>> updatedOpportunities = [];
+
+    for (var opportunity in opportunityDetails) {
+      log("print5");
+
+      // Placeholder for user image, can be updated later if needed
+      opportunity['user_image'] = null;
+
+      updatedOpportunities.add(opportunity as Map<String, dynamic>);
+    }
+
+    return updatedOpportunities;
   }
 
   void showfilterbottom(BuildContext context) {
@@ -352,7 +266,7 @@ class LeadListProvider extends ChangeNotifier {
                     ),
                     const SizedBox(height: 20),
                     DropdownSearch<Map<String, dynamic>>(
-                      items: _salesPersonDetails,
+                      items: salesPersonDetails,
                       dropdownDecoratorProps: const DropDownDecoratorProps(
                         dropdownSearchDecoration: InputDecoration(
                           border: OutlineInputBorder(),
@@ -374,9 +288,10 @@ class LeadListProvider extends ChangeNotifier {
                         },
                       ),
                       onChanged: (value) {
-                        salespersonSelect(value, "person");
+                        selectedSalesperson = value;
+                        notifyListeners();
                       },
-                      selectedItem: _selectedSalesperson,
+                      selectedItem: selectedSalesperson,
                       compareFn: (item1, item2) => item1['id'] == item2['id'],
                       filterFn: (item, query) => item['name']
                           .toLowerCase()
@@ -391,7 +306,7 @@ class LeadListProvider extends ChangeNotifier {
                     ),
                     const SizedBox(height: 20),
                     DropdownSearch<Map<String, dynamic>>(
-                      items: _salesTeamDetails,
+                      items: salesTeamDetails,
                       dropdownDecoratorProps: const DropDownDecoratorProps(
                         dropdownSearchDecoration: InputDecoration(
                           border: OutlineInputBorder(),
@@ -413,10 +328,11 @@ class LeadListProvider extends ChangeNotifier {
                         },
                       ),
                       onChanged: (value) {
-                        salespersonSelect(value, "team");
+                        selectedSalesTeam = value;
+                        notifyListeners();
                         print('Selected Sales Team: $value');
                       },
-                      selectedItem: _selectedSalesTeam,
+                      selectedItem: selectedSalesTeam,
                       compareFn: (item1, item2) => item1['id'] == item2['id'],
                       filterFn: (item, query) => item['name']
                           .toLowerCase()
@@ -453,7 +369,7 @@ class LeadListProvider extends ChangeNotifier {
                         },
                       ),
                       items: [1, 2, 3],
-                      selectedItem: _selectedPriority,
+                      selectedItem: selectedPriority,
                       dropdownBuilder: (context, selectedItem) {
                         if (selectedItem != null) {
                           return Row(
@@ -469,18 +385,19 @@ class LeadListProvider extends ChangeNotifier {
                         }
                       },
                       onChanged: (value) {
-                        salespersonSelect(value, "priority");
+                        selectedPriority = value;
+                        notifyListeners();
                       },
                     ),
                     const SizedBox(height: 20),
                     MultiSelectDropdown.simpleList(
-                      list: _crmTagDetails.map((e) => e['name']).toList(),
+                      list: crmTagDetails.map((e) => e['name']).toList(),
                       initiallySelected:
-                          _selectedCRMTags.map((e) => e['name']).toList(),
+                          selectedCRMTags.map((e) => e['name']).toList(),
                       onChange: (selectedItems) {
                         List<Map<String, dynamic>> selectedMapItems = [];
                         for (var item in selectedItems) {
-                          var matchingItem = _crmTagDetails.firstWhere(
+                          var matchingItem = crmTagDetails.firstWhere(
                             (tag) => tag['name'] == item,
                             orElse: () => {},
                           );
@@ -489,8 +406,8 @@ class LeadListProvider extends ChangeNotifier {
                           }
                         }
 
-                        _selectedCRMTags.clear();
-                        _selectedCRMTags.addAll(selectedMapItems);
+                        selectedCRMTags.clear();
+                        selectedCRMTags.addAll(selectedMapItems);
                         notifyListeners();
                       },
                       includeSearch: true,
@@ -499,14 +416,14 @@ class LeadListProvider extends ChangeNotifier {
                       numberOfItemsLabelToShow: 3,
                       checkboxFillColor: Colors.grey,
                       // boxDecoration: BoxDecoration(
-                      //   border: Border.all(color: Colors.redAccent),
+                      //   border: Border.all(),
                       //   borderRadius: BorderRadius.circular(10),
                       // ),
                     ),
                     const SizedBox(height: 30),
                     ElevatedButton(
                       onPressed: () {
-                        getLeads(context: context);
+                        getOpportunities(context: context);
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(

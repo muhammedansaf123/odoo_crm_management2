@@ -1,16 +1,13 @@
-import 'dart:convert';
-import 'dart:developer';
 import 'package:flutter_svg/svg.dart';
 import 'package:html/parser.dart';
 
 import 'package:flutter/material.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/components/custom_button.dart';
-import 'package:odoo_crm_management/lead/providers/lead_form_provider.dart';
-import 'package:odoo_crm_management/opportunity/opportunity_form_provider.dart';
-import 'package:odoo_rpc/odoo_rpc.dart';
+
+import 'package:odoo_crm_management/opportunity/providers/opportunity_form_provider.dart';
+
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class OpportunityFormView extends StatefulWidget {
   final Map<dynamic, dynamic> opportunity;
@@ -39,7 +36,6 @@ class _OpportunityFormState extends State<OpportunityFormView>
   @override
   Widget build(BuildContext context) {
     final lead = widget.opportunity;
-    double probability = (lead['probability'] ?? 0).toDouble();
 
     Color getColorForProbability(double probability) {
       if (probability < 10) {
@@ -57,8 +53,6 @@ class _OpportunityFormState extends State<OpportunityFormView>
       }
     }
 
-    print(lead['tag_ids']);
-    print("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhaaaaaaaaaaaa");
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -106,7 +100,10 @@ class _OpportunityFormState extends State<OpportunityFormView>
                                             minimumSize:
                                                 const Size(double.infinity, 48),
                                           ),
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            Navigator.pushNamed(
+                                                context, '/quotation_screen');
+                                          },
                                           child: const Text(
                                             "New Quotation",
                                             style: TextStyle(
@@ -124,31 +121,39 @@ class _OpportunityFormState extends State<OpportunityFormView>
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
                                     children: [
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {},
-                                          style: ElevatedButton.styleFrom(
-                                            side: const BorderSide(
-                                                color: Colors.teal),
-                                            backgroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8.0),
+                                      if (provider.stageId != 4 &&
+                                          provider.active == true) ...[
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              provider.markLeadAsWon(
+                                                  widget.opportunity['id'],
+                                                  context,
+                                                  widget.opportunity);
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              side: const BorderSide(
+                                                  color: Colors.teal),
+                                              backgroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
+                                              ),
+                                              minimumSize: const Size(
+                                                  double.infinity, 48),
                                             ),
-                                            minimumSize:
-                                                const Size(double.infinity, 48),
-                                          ),
-                                          child: const Text(
-                                            "Won",
-                                            style: TextStyle(
-                                              color: Colors.teal,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                            child: const Text(
+                                              "Won",
+                                              style: TextStyle(
+                                                color: Colors.teal,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 10),
+                                        const SizedBox(width: 10),
+                                      ],
                                       Expanded(
                                         child: ElevatedButton(
                                           onPressed: () {
@@ -503,17 +508,27 @@ class _OpportunityFormState extends State<OpportunityFormView>
                     ),
                     if (provider.active == false) ...[
                       Positioned(
-                        top: 0,
-                        right: 5,
+                        top: -20,
+                        right: -20,
                         child: SizedBox(
-                            height: 140,
-                            width: 120,
+                            height: 180,
+                            width: 180,
                             child: SvgPicture.asset(
                               "assets/lost.svg",
-                              color: Colors.red,
                             )),
                       )
                     ],
+                    if (provider.stageId == 4 && provider.active == true)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: SizedBox(
+                            height: 140,
+                            width: 140,
+                            child: SvgPicture.asset(
+                              "assets/won.svg",
+                            )),
+                      )
                   ],
                 );
               }),

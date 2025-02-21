@@ -64,15 +64,13 @@ class _LoginPageState extends State<LoginPage> {
       if (_showDatabaseFields == false) {
         _selectedDatabase = db;
         _urlController.text = url!;
-      }
-      else{
-              if (_dropdownItems.isEmpty) {
-        _selectedDatabase = null;
-      }
+      } else {
+        if (_dropdownItems.isEmpty) {
+          _selectedDatabase = null;
+        }
       }
       _isLoading = true;
       _errorMessage = null;
-
     });
     print("dropdown $_dropdownItems");
     print("database $_selectedDatabase");
@@ -185,9 +183,8 @@ class _LoginPageState extends State<LoginPage> {
             await odooClientProvider.updateSession(
               session,
             );
-            print("ansaf is ${odooClientProvider.storedaccounts} ");
+
             if (odooClientProvider.storedaccounts.isEmpty) {
-              print("ansaf added");
               odooClientProvider.storeUserSession(
                   session,
                   _urlController.text,

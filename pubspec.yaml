@@ -32,6 +32,7 @@ dependencies:
   audio_waveforms: ^1.0.5
   audioplayers: ^5.2.1
   badges: ^3.1.2
+  cached_network_image: ^3.4.1
   cupertino_icons: ^1.0.6
   dropdown_search: ^5.0.2
   ffmpeg_kit_flutter_audio: null

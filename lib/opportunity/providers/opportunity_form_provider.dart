@@ -1,20 +1,23 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/components/bottomsheet_lost.dart';
-import 'package:odoo_crm_management/lead/providers/lead_list_provider.dart';
-import 'package:odoo_crm_management/opportunity/opportunity_list_provider.dart';
+
+import 'package:odoo_crm_management/opportunity/providers/opportunity_list_provider.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:provider/provider.dart';
 
 class OpportunityFormProvider with ChangeNotifier {
   // Private variables
   bool? _active;
+  int? _stageid;
   double? _probability;
   final Map<String, dynamic> _data = {};
   List<dynamic> leadTags = [];
   // Public getters
   bool? get active => _active;
+  int? get stageId => _stageid;
   double? get probability => _probability;
   Map<String, dynamic> get data => _data;
 
@@ -28,12 +31,13 @@ class OpportunityFormProvider with ChangeNotifier {
 
   Future<void> init(OdooClient client, dynamic lead) async {
     fetchStatus(client, lead);
+
     await getLeadTags(client, lead);
   }
 
   Future<void> getLeadTags(OdooClient client, dynamic lead) async {
     try {
-      final response = await client?.callKw({
+      final response = await client.callKw({
         'model': 'crm.tag',
         'method': 'search_read',
         'args': [
@@ -91,7 +95,8 @@ class OpportunityFormProvider with ChangeNotifier {
           'date_open',
           'date_closed',
           'description',
-          'contact_name'
+          'contact_name',
+          'stage_id',
         ],
       },
     });
@@ -101,6 +106,7 @@ class OpportunityFormProvider with ChangeNotifier {
       final result = response[0];
 
       _active = result['active'];
+      _stageid = result['stage_id'][0];
       _probability = result['probability'] != null
           ? (result['probability'] as num).toDouble()
           : null;
@@ -131,7 +137,53 @@ class OpportunityFormProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void restore(OdooClient client, dynamic lead,BuildContext context) async {
+  Future<void> markLeadAsWon(
+      int leadId, BuildContext context, dynamic lead) async {
+    try {
+      // Fetch the "Won" stage_id dynamically
+
+      final client =
+          Provider.of<OdooClientManager>(context, listen: false).client;
+      var result = await client!.callKw({
+        'model': 'crm.stage',
+        'method': 'search_read',
+        'args': [],
+        'kwargs': {
+          'domain': [
+            ['name', '=', 'Won']
+          ],
+          'fields': ['id'],
+          'limit': 1,
+        }
+      });
+
+      if (result.isNotEmpty) {
+        int wonStageId = result[0]['id'];
+
+        // Update the lead/opportunity stage_id to "Won"
+        await client.callKw({
+          'model': 'crm.lead',
+          'method': 'write',
+          'args': [
+            [leadId], // The ID of the lead to update
+            {'stage_id': wonStageId} // Set the new stage_id
+          ],
+          'kwargs': {}
+        });
+
+        log("Lead marked as Won successfully.");
+        await fetchStatus(client, lead);
+        Provider.of<OpportunityListProvider>(context, listen: false)
+            .initializeopportunitylist(context);
+      } else {
+        log("Won stage not found.");
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  void restore(OdooClient client, dynamic lead, BuildContext context) async {
     final response = await client.callKw({
       'model': 'crm.lead',
       'method': 'toggle_active',
@@ -143,7 +195,8 @@ class OpportunityFormProvider with ChangeNotifier {
     print(response);
 
     await fetchStatus(client, lead);
-     Provider.of<OpportunityListProvider>(context, listen: false).initializeOdooClient(context);
+    Provider.of<OpportunityListProvider>(context, listen: false)
+        .initializeopportunitylist(context);
   }
 
   String? selectedValue;

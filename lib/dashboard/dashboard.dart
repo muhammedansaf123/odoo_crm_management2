@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 
 import 'package:odoo_crm_management/dashboard/charts/custom_charts.dart';
@@ -9,7 +7,6 @@ import 'package:odoo_crm_management/dashboard/provider/dashboard_provider.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 
 import 'package:provider/provider.dart';
-
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -140,7 +137,9 @@ class _DashboardState extends State<Dashboard>
               ),
               const SizedBox(width: 10),
             ]),
-        drawer: const DashboardDrawer(),
+        drawer: const DashboardDrawer(
+          currentroute: 'dashboard',
+        ),
         body: dashboardprovider.selectedTabIndex == 0
             ? Padding(
                 padding: const EdgeInsets.all(16.0),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
+
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/components/custom_button.dart';
 import 'package:odoo_crm_management/lead/providers/lead_form_provider.dart';
 import 'package:odoo_crm_management/lead/providers/lead_list_provider.dart';
-import 'package:odoo_crm_management/opportunity/opportunity_form_provider.dart';
-import 'package:odoo_crm_management/opportunity/opportunity_list_provider.dart';
+import 'package:odoo_crm_management/opportunity/providers/opportunity_form_provider.dart';
+import 'package:odoo_crm_management/opportunity/providers/opportunity_list_provider.dart';
 import 'dart:developer';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:provider/provider.dart';
@@ -131,8 +131,6 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
     OdooClient client,
     int leadId,
   ) async {
-    print("Selected Lost Reason Index: ${defaultindex!}");
-
     final responseWrite = await client.callKw({
       'model': 'crm.lead.lost',
       'method': 'create',
@@ -174,7 +172,7 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
             children: [
               const Text(
                 "Mark Lost",
-                style: const TextStyle(
+                style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
                     fontSize: 15),
@@ -277,7 +275,6 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
                   if (widget.isLead == true) ...[
                     Consumer2<OdooClientManager, LeadFormProvider>(builder:
                         (context, odooinitprovider, leadprovider, child) {
-                      print(odooinitprovider.currentsession!.userId);
                       return CustomButton(
                           text: "Mark as Lost",
                           onPressed: () async {
@@ -289,11 +286,12 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
                               await leadprovider.fetchStatus(
                                   odooinitprovider.client!, widget.lead);
-
-                              Provider.of<LeadListProvider>(context,
-                                      listen: false)
-                                  .init(context);
-                              Navigator.pop(context);
+                              if (context.mounted) {
+                                Provider.of<LeadListProvider>(context,
+                                        listen: false)
+                                    .init(context);
+                                Navigator.pop(context);
+                              }
                             }
                           });
                     }),
@@ -303,7 +301,6 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
                     Consumer2<OdooClientManager, OpportunityFormProvider>(
                         builder:
                             (context, odooinitprovider, leadprovider, child) {
-                      print(odooinitprovider.currentsession!.userId);
                       return CustomButton(
                           text: "Mark as Lost",
                           onPressed: () async {
@@ -315,10 +312,12 @@ class _SearchableDropdownState extends State<SearchableDropdown> {
 
                               await leadprovider.fetchStatus(
                                   odooinitprovider.client!, widget.lead);
- Provider.of<OpportunityListProvider>(context,
-                                      listen: false)
-                                  .initializeOdooClient(context);
-                              Navigator.pop(context);
+                              if (context.mounted) {
+                                Provider.of<OpportunityListProvider>(context,
+                                        listen: false)
+                                    .initializeopportunitylist(context);
+                                Navigator.pop(context);
+                              }
                             }
                           });
                     })

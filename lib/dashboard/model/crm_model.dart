@@ -49,7 +49,7 @@ class LeadCrmModel {
   }
 }
 
-class Opportunity {
+class OpportunityModel {
   final int id;
 
   final DateTime createDate;
@@ -63,7 +63,7 @@ class Opportunity {
   final double proratedRevenue;
   final double recurringRevenue;
 
-  Opportunity({
+  OpportunityModel({
     required this.id,
     required this.createDate,
     required this.stageName,
@@ -77,9 +77,9 @@ class Opportunity {
     required this.recurringRevenue,
   });
 
-  factory Opportunity.fromJson(Map<String, dynamic> json) {
-    print("ansaf${json['stage_id']}");
-    return Opportunity(
+  factory OpportunityModel.fromJson(Map<String, dynamic> json) {
+    
+    return OpportunityModel(
       id: json['id'] ?? 0,
       createDate: DateTime.parse(json['create_date']),
       stageName: json['stage_id'] != null && json['stage_id'] is List

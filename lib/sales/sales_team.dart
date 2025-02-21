@@ -44,15 +44,8 @@ class _SalesTeamState extends State<SalesTeam> {
     final serverVersion = prefs.getString('serverVersion') ?? '';
     final userLang = prefs.getString('userLang') ?? '';
     final companyId = prefs.getInt('companyId');
-    final allowedCompaniesStringList =
-        prefs.getStringList('allowedCompanies') ?? [];
-    List<Company> allowedCompanies = [];
-
-    if (allowedCompaniesStringList.isNotEmpty) {
-      allowedCompanies = allowedCompaniesStringList
-          .map((jsonString) => Company.fromJson(jsonDecode(jsonString)))
-          .toList();
-    }
+   
+    
     if (url.isEmpty || db.isEmpty || sessionId.isEmpty) {
       throw Exception('URL, database, or session details not set');
     }
@@ -69,7 +62,7 @@ class _SalesTeamState extends State<SalesTeam> {
       dbName: db,
       serverVersion: serverVersion,
       companyId: companyId ?? 1,
-      allowedCompanies: allowedCompanies,
+      allowedCompanies: [],
     );
 
     client = OdooClient(url, session);
@@ -187,9 +180,9 @@ class _SalesTeamState extends State<SalesTeam> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Sales Team',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -216,7 +209,7 @@ class _SalesTeamState extends State<SalesTeam> {
                   value: team['id'],
                   child: Text(
                     team['name'] ?? '',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -286,7 +279,7 @@ class _SalesTeamState extends State<SalesTeam> {
               },
             ),
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 500.0, horizontal: 32.0),
+              padding: const EdgeInsets.symmetric(vertical: 500.0, horizontal: 32.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -309,11 +302,11 @@ class _SalesTeamState extends State<SalesTeam> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text(
+            const Text(
               'Sales Team Performance',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             if (barChartData.isNotEmpty)
               SizedBox(
                 height: 400,
@@ -365,24 +358,23 @@ class _SalesTeamState extends State<SalesTeam> {
                 children: [
                   TextButton(
                     onPressed: () {
-                      print(selectedTeamId);
-                      print("444444444444444444444444444");
+                    
                       Navigator.pushNamed(context, '/opportunity', arguments: {
                         'open': true,
                         'selectedTeamId': selectedTeamId
                       });
                     },
                     child: Text(
-                      '${opportunities_count} Open Opportunities',
-                      style: TextStyle(
+                      '$opportunities_count Open Opportunities',
+                      style: const TextStyle(
                           color: Colors.teal,
                           fontSize: 18,
                           decoration: TextDecoration.underline),
                     ),
                   ),
                   Text(
-                    "${opportunities_amount}",
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    opportunities_amount,
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -399,20 +391,20 @@ class _SalesTeamState extends State<SalesTeam> {
                       });
                     },
                     child: Text(
-                      '${opportunities_overdue_count} Overdue Opportunity',
-                      style: TextStyle(
+                      '$opportunities_overdue_count Overdue Opportunity',
+                      style: const TextStyle(
                           color: Colors.teal,
                           fontSize: 18,
                           decoration: TextDecoration.underline),
                     ),
                   ),
                   Text(
-                    "${opportunities_overdue_amount}",
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    opportunities_overdue_amount,
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
             ElevatedButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/opportunity');

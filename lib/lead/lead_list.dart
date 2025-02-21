@@ -1,21 +1,17 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:developer';
-import 'package:dropdown_search/dropdown_search.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:intl/intl.dart';
+
+import 'package:odoo_crm_management/dashboard/dashboard_drawer.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/providers/lead_form_provider.dart';
 import 'package:odoo_crm_management/lead/providers/lead_list_provider.dart';
-import 'package:odoo_crm_management/profile/components/custom_drawer.dart';
-import 'package:odoo_rpc/odoo_rpc.dart';
+
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:multiselect_dropdown_flutter/multiselect_dropdown_flutter.dart';
+
 import 'package:shimmer/shimmer.dart';
 import 'lead_form.dart';
-import 'dart:typed_data';
 
 class Lead extends StatefulWidget {
   const Lead({super.key});
@@ -33,6 +29,7 @@ class _LeadState extends State<Lead> {
   }
 
   Timer? _debounce;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void dispose() {
@@ -44,19 +41,27 @@ class _LeadState extends State<Lead> {
   Widget build(BuildContext context) {
     return Consumer<LeadListProvider>(builder: (context, provider, child) {
       return Scaffold(
+        key: _scaffoldKey,
         appBar: AppBar(
+          iconTheme: const IconThemeData(color: Colors.white),
+          centerTitle: true,
+          leading: IconButton(
+              onPressed: () {
+                _scaffoldKey.currentState!.openDrawer();
+              },
+              icon: const Icon(Icons.menu)),
           title: provider.isSearching
               ? TextField(
                   controller: provider.searchController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
                     hintText: 'Search...',
                     hintStyle: TextStyle(color: Colors.white),
                     border: InputBorder.none,
                   ),
                   onChanged: (query) {
                     if (_debounce?.isActive ?? false) _debounce!.cancel();
-                    _debounce = Timer(Duration(milliseconds: 500), () {
+                    _debounce = Timer(const Duration(milliseconds: 500), () {
                       provider.timer(query, context);
                     });
                     // setState(() {
@@ -77,233 +82,17 @@ class _LeadState extends State<Lead> {
           actions: [
             if (!provider.isSearching)
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   Icons.tune,
                   color: Colors.white,
                 ),
                 onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return Container(
-                        width: MediaQuery.of(context).size.width * 0.89,
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  const Text(
-                                    'Filter By: ',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  DropdownSearch<Map<String, dynamic>>(
-                                    items: provider.salesPersonDetails,
-                                    dropdownDecoratorProps:
-                                        const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        labelText: 'Select Salesperson',
-                                      ),
-                                    ),
-                                    popupProps: PopupProps.menu(
-                                      showSearchBox: true,
-                                      searchFieldProps: const TextFieldProps(
-                                        decoration: InputDecoration(
-                                          labelText: 'Search Salesperson',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                      itemBuilder: (context, item, isSelected) {
-                                        return ListTile(
-                                          title: Text(item['name']),
-                                        );
-                                      },
-                                    ),
-                                    onChanged: (value) {
-                                      provider.salespersonSelect(
-                                          value, "person");
-                                    },
-                                    selectedItem: provider.selectedSalesperson,
-                                    compareFn: (item1, item2) =>
-                                        item1['id'] == item2['id'],
-                                    filterFn: (item, query) => item['name']
-                                        .toLowerCase()
-                                        .contains(query.toLowerCase()),
-                                    dropdownBuilder: (context, selectedItem) {
-                                      if (selectedItem != null) {
-                                        return Text(selectedItem['name']);
-                                      } else {
-                                        return const Text('Select Salesperson');
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  DropdownSearch<Map<String, dynamic>>(
-                                    items: provider.salesTeamDetails,
-                                    dropdownDecoratorProps:
-                                        const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        labelText: 'Select Sales Team',
-                                      ),
-                                    ),
-                                    popupProps: PopupProps.menu(
-                                      showSearchBox: true,
-                                      searchFieldProps: const TextFieldProps(
-                                        decoration: InputDecoration(
-                                          labelText: 'Search Sales Team',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                      itemBuilder: (context, item, isSelected) {
-                                        return ListTile(
-                                          title: Text(item['name']),
-                                        );
-                                      },
-                                    ),
-                                    onChanged: (value) {
-                                      provider.salespersonSelect(value, "team");
-                                      print('Selected Sales Team: $value');
-                                    },
-                                    selectedItem: provider.selectedSalesTeam,
-                                    compareFn: (item1, item2) =>
-                                        item1['id'] == item2['id'],
-                                    filterFn: (item, query) => item['name']
-                                        .toLowerCase()
-                                        .contains(query.toLowerCase()),
-                                    dropdownBuilder: (context, selectedItem) {
-                                      if (selectedItem != null) {
-                                        return Text(selectedItem['name']);
-                                      } else {
-                                        return const Text('Select Sales Team');
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  DropdownSearch<int>(
-                                    dropdownDecoratorProps:
-                                        const DropDownDecoratorProps(
-                                      dropdownSearchDecoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        labelText: 'Priorities',
-                                      ),
-                                    ),
-                                    popupProps: PopupProps.menu(
-                                      showSearchBox: false,
-                                      itemBuilder: (context, item, isSelected) {
-                                        return ListTile(
-                                          leading: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: List.generate(
-                                              item,
-                                              (index) => Icon(Icons.star,
-                                                  color: Colors.yellow[900]),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    items: [1, 2, 3],
-                                    selectedItem: provider.selectedPriority,
-                                    dropdownBuilder: (context, selectedItem) {
-                                      if (selectedItem != null) {
-                                        return Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: List.generate(
-                                            selectedItem,
-                                            (index) => Icon(Icons.star,
-                                                color: Colors.yellow[900]),
-                                          ),
-                                        );
-                                      } else {
-                                        return const Text('Select Priority');
-                                      }
-                                    },
-                                    onChanged: (value) {
-                                      provider.salespersonSelect(
-                                          value, "priority");
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  MultiSelectDropdown.simpleList(
-                                    list: provider.crmTagDetails
-                                        .map((e) => e['name'])
-                                        .toList(),
-                                    initiallySelected: provider.selectedCRMTags
-                                        .map((e) => e['name'])
-                                        .toList(),
-                                    onChange: (selectedItems) {
-                                      List<Map<String, dynamic>>
-                                          selectedMapItems = [];
-                                      for (var item in selectedItems) {
-                                        var matchingItem =
-                                            provider.crmTagDetails.firstWhere(
-                                          (tag) => tag['name'] == item,
-                                          orElse: () => {},
-                                        );
-                                        if (matchingItem.isNotEmpty) {
-                                          selectedMapItems.add(matchingItem);
-                                        }
-                                      }
-
-                                      setState(() {
-                                        provider.selectedCRMTags.clear();
-                                        provider.selectedCRMTags
-                                            .addAll(selectedMapItems);
-                                      });
-                                    },
-                                    includeSearch: true,
-                                    includeSelectAll: true,
-                                    isLarge: false,
-                                    numberOfItemsLabelToShow: 3,
-                                    checkboxFillColor: Colors.grey,
-                                    // boxDecoration: BoxDecoration(
-                                    //   border: Border.all(color: Colors.redAccent),
-                                    //   borderRadius: BorderRadius.circular(10),
-                                    // ),
-                                  ),
-                                  const SizedBox(height: 30),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      provider.getLeads();
-                                      Navigator.pop(context);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal,
-                                    ),
-                                    child: const Text(
-                                      'Apply Filters',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
+                  provider.showfilterbottom(context);
                 },
               ),
             if (!provider.isSearching)
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   Icons.search,
                   color: Colors.white,
                 ),
@@ -313,7 +102,7 @@ class _LeadState extends State<Lead> {
               )
             else
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   Icons.clear,
                   color: Colors.white,
                 ),
@@ -323,7 +112,9 @@ class _LeadState extends State<Lead> {
               )
           ],
         ),
-        drawer: CustomDrawer(),
+        drawer: const DashboardDrawer(
+          currentroute: 'leads',
+        ),
         body: provider.isLoading
             ? Row(
                 children: [
@@ -338,7 +129,7 @@ class _LeadState extends State<Lead> {
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
                             child: ListTile(
-                              leading: CircleAvatar(
+                              leading: const CircleAvatar(
                                 backgroundColor: Colors.white,
                                 radius: 30,
                               ),
@@ -376,8 +167,8 @@ class _LeadState extends State<Lead> {
                             width: 92,
                             height: 92,
                           ),
-                          SizedBox(height: 20),
-                          Text(
+                          const SizedBox(height: 20),
+                          const Text(
                             "There are no Leads available to display",
                             style: TextStyle(
                               fontSize: 16.0,
@@ -403,16 +194,42 @@ class _LeadState extends State<Lead> {
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 5),
                               child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundImage: lead['user_image'] != null
-                                      ? MemoryImage(
-                                          base64Decode(lead['user_image']))
-                                      : AssetImage('assets/profile.jpg')
-                                          as ImageProvider,
+                                leading: ClipOval(
+                                  // Make the image circular
+                                  child: (lead['user_id'] == null ||
+                                          lead['user_id'] == false)
+                                      ? Image.asset(
+                                          "assets/profile.jpg",
+
+                                          width: 50, // Customize image size
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return const Icon(Icons.person,
+                                                size: 100, color: Colors.grey);
+                                          },
+                                        )
+                                      : Image.network(
+                                          "${odooinitprovider.url}web/image/res.users/${lead['user_id'][0]}/avatar_1920",
+                                          headers: {
+                                            "Cookie":
+                                                "session_id=${odooinitprovider.currentsession!.id}", // Attach session for auth
+                                          },
+                                          width: 50, // Customize image size
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return const Icon(Icons.person,
+                                                size: 100, color: Colors.grey);
+                                          },
+                                        ),
                                 ),
                                 title: Text(
                                   lead['name'] ?? 'No Name',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text(
                                     'Email: ${lead['email_from'] ?? 'N/A'}\nCity: ${lead['city'] ?? 'N/A'}'),
@@ -421,7 +238,7 @@ class _LeadState extends State<Lead> {
                                           lead['team_id'].length > 1)
                                       ? lead['team_id'][1]
                                       : '',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.teal),
@@ -445,16 +262,17 @@ class _LeadState extends State<Lead> {
                           }),
                           if (lead['active'] == null || lead['active'] == false)
                             Positioned(
-                              top: 5,
-                              right: 9,
+                              top: -5
+                              ,
+                              right: -2,
                               child: SizedBox(
-                                  height: 60,
-                                  width: 60,
+                                  height: 90,
+                                  width: 90,
                                   child: SvgPicture.asset(
                                     "assets/lost.svg",
-                                    color: Colors.red,
+                                  
                                   )),
-                            )
+                            ),
                         ],
                       );
                     },

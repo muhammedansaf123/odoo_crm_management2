@@ -1,15 +1,11 @@
-import 'dart:convert';
-import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:html/parser.dart';
 
 import 'package:flutter/material.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/components/custom_button.dart';
 import 'package:odoo_crm_management/lead/providers/lead_form_provider.dart';
-import 'package:odoo_rpc/odoo_rpc.dart';
+
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LeadFormView extends StatefulWidget {
   final Map<dynamic, dynamic> lead;
@@ -39,7 +35,6 @@ class _LeadFormViewState extends State<LeadFormView>
   @override
   Widget build(BuildContext context) {
     final lead = widget.lead;
-    double probability = (lead['probability'] ?? 0).toDouble();
 
     Color getColorForProbability(double probability) {
       if (probability < 10) {
@@ -73,22 +68,21 @@ class _LeadFormViewState extends State<LeadFormView>
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              child: Stack(
-                children: [
-                  Card(
-                    color: Colors.purple.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Consumer2<LeadFormProvider, OdooClientManager>(
-                              builder:
-                                  (context, provider, odooprovider, child) {
-                            return Column(
+              child: Consumer2<LeadFormProvider, OdooClientManager>(
+                  builder: (context, provider, odooprovider, child) {
+                return Stack(
+                  children: [
+                    Card(
+                      color: Colors.purple.shade50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Column(
                               children: [
                                 if (provider.active == true) ...[
                                   Row(
@@ -101,6 +95,8 @@ class _LeadFormViewState extends State<LeadFormView>
                                           return CustomButton(
                                               text: "Convert To Oportunity",
                                               onPressed: () {
+                                                provider.getDuplicatedLeads(
+                                                    lead['id'], context);
                                                 provider.showConversionPopup(
                                                     context, widget.lead);
                                               });
@@ -179,33 +175,42 @@ class _LeadFormViewState extends State<LeadFormView>
                                     ],
                                   ),
                                 ],
-                                if (provider.active == false) ...[
-                                  Column(
-                                    children: [
-                                      SizedBox(
-                                        height: 20,
-                                      ),
-                                      Row(
+                                const SizedBox(height: 20),
+
+                                // Restore Button Section (Using Consumer2 only for OpportunityFormProvider & OdooClientManager)
+                                Consumer2<LeadFormProvider, OdooClientManager>(
+                                  builder: (context, opportunityProvider,
+                                      odooProvider, child) {
+                                    if (opportunityProvider.active == false) {
+                                      return Column(
                                         children: [
-                                          Expanded(
-                                            child: CustomButton(
-                                                text: "Restore",
-                                                onPressed: () {
-                                                  provider.restore(
-                                                      odooprovider.client!,
-                                                      lead,
-                                                      context);
-                                                }),
-                                          )
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: CustomButton(
+                                                  text: "Restore",
+                                                  onPressed: () {
+                                                    opportunityProvider.restore(
+                                                        odooProvider.client!,
+                                                        lead,
+                                                        context);
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 40),
                                         ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                const SizedBox(
-                                  height: 40,
+                                      );
+                                    } else {
+                                      return const SizedBox();
+                                    }
+                                  },
                                 ),
-                                if (provider.probablity != null) ...[
+
+                                // Probability Section
+                                if (provider.probablity != null &&
+                                    provider.active != null) ...[
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -220,7 +225,7 @@ class _LeadFormViewState extends State<LeadFormView>
                                         ),
                                       ),
                                       Text(
-                                        '${provider.probablity.toString()}%',
+                                        '${provider.probablity!.toString()}%',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
@@ -247,251 +252,251 @@ class _LeadFormViewState extends State<LeadFormView>
                                 if (provider.active == null ||
                                     provider.probablity == null) ...[
                                   const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
+                                      child: CircularProgressIndicator()),
                                 ],
                               ],
-                            );
-                          }),
-                          const SizedBox(height: 28),
-                          Center(
-                            child: Text(
-                              lead['partner_id'] != null &&
-                                      lead['partner_id'] is List &&
-                                      lead['partner_id'].length > 1
-                                  ? '${lead['partner_id'][1]}'
-                                  : '',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                            ),
+                            const SizedBox(height: 28),
+                            Center(
+                              child: Text(
+                                lead['partner_id'] != null &&
+                                        lead['partner_id'] is List &&
+                                        lead['partner_id'].length > 1
+                                    ? '${lead['partner_id'][1]}'
+                                    : '',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 15),
-                          CustomRow(
-                              label: 'Company Name:',
-                              value: lead['partner_name']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Address:',
-                              value: lead['street']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Salesperson:',
-                              value: lead['user_id'] is List &&
-                                      lead['user_id'].length > 1
-                                  ? lead['user_id'][1].toString()
-                                  : 'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Sales Team:',
-                              value: lead['team_id'] is List &&
-                                      lead['team_id'].length > 1
-                                  ? lead['team_id'][1].toString()
-                                  : 'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Contact Name:',
-                              value: lead['contact_name']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Email:',
-                              value: lead['email_from']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Email CC:',
-                              value: lead['email_cc']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Job Position:',
-                              value: lead['function']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Phone:',
-                              value:
-                                  lead['phone']?.toString() ?? 'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          CustomRow(
-                              label: 'Mobile:',
-                              value: lead['mobile']?.toString() ??
-                                  'Not Available'),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          buildPriorityStars(
-                              'Priority:',
-                              int.tryParse(
-                                      lead['priority']?.toString() ?? '0') ??
-                                  0),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          Consumer<LeadFormProvider>(
-                              builder: (context, provider, child) {
-                            print("topppppptags ${provider.leadTags}");
-                            return CustomTagRow(
-                                label: 'Tags:',
-                                value: provider.leadTags.isNotEmpty
-                                    ? provider.leadTags.join(', ')
-                                    : 'No Tags Available');
-                          }),
-                          const SizedBox(height: 16),
-                          TabBar(
-                            controller: _tabController,
-                            tabs: const [
-                              Tab(text: 'Internal Notes'),
-                              Tab(text: 'Extra Info'),
-                            ],
-                            labelColor: Colors.black,
-                            unselectedLabelColor: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            height: 400,
-                            child: Consumer<LeadFormProvider>(
+                            const SizedBox(height: 15),
+                            CustomRow(
+                                label: 'Company Name:',
+                                value: lead['partner_name']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Address:',
+                                value: lead['street']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Salesperson:',
+                                value: lead['user_id'] is List &&
+                                        lead['user_id'].length > 1
+                                    ? lead['user_id'][1].toString()
+                                    : 'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Sales Team:',
+                                value: lead['team_id'] is List &&
+                                        lead['team_id'].length > 1
+                                    ? lead['team_id'][1].toString()
+                                    : 'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Contact Name:',
+                                value: lead['contact_name']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Email:',
+                                value: lead['email_from']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Email CC:',
+                                value: lead['email_cc']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Job Position:',
+                                value: lead['function']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Phone:',
+                                value: lead['phone']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            CustomRow(
+                                label: 'Mobile:',
+                                value: lead['mobile']?.toString() ??
+                                    'Not Available'),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            buildPriorityStars(
+                                'Priority:',
+                                int.tryParse(
+                                        lead['priority']?.toString() ?? '0') ??
+                                    0),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            Consumer<LeadFormProvider>(
                                 builder: (context, provider, child) {
-                              return TabBarView(
-                                controller: _tabController,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      lead['description'] is String &&
-                                              lead['description'].isNotEmpty
-                                          ? provider.parseHtmlString(
-                                              lead['description'])
-                                          : 'No description available',
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'EMAIL',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.teal,
-                                          ),
-                                        ),
-                                        CustomRow(
-                                            label: 'Bounce:',
-                                            value: lead['message_bounce']
-                                                    ?.toString() ??
-                                                'Not Available'),
-                                        const SizedBox(height: 20),
-                                        const Text(
-                                          'ANALYSIS',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.teal,
-                                          ),
-                                        ),
-                                        CustomRow(
-                                            label: 'Assignment Date:',
-                                            value:
-                                                lead['date_open']?.toString() ??
-                                                    'Not Available'),
-                                        CustomRow(
-                                            label: 'Closed Date:',
-                                            value: lead['date_closed']
-                                                    ?.toString() ??
-                                                'Not Available'),
-                                        const SizedBox(height: 20),
-                                        const Text(
-                                          'MARKETING',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.teal,
-                                          ),
-                                        ),
-                                        CustomRow(
-                                            label: 'Campaign:',
-                                            value: lead['campaign_id'] == null
-                                                ? 'Not Available'
-                                                : lead['campaign_id'][1] ??
-                                                    'Not Available'),
-                                        CustomRow(
-                                            label: 'Medium:',
-                                            value: lead['medium_id'] == null
-                                                ? 'Not Available'
-                                                : lead['medium_id'][1] ??
-                                                    'Not Available'),
-                                        CustomRow(
-                                            label: 'Source:',
-                                            value: lead['source_id'] == null
-                                                ? 'Not Available'
-                                                : lead['source_id'][1] ??
-                                                    'Not Available'),
-                                        CustomRow(
-                                          label: 'Referred By:',
-                                          value: lead['referred'] == null
-                                              ? 'Not Available'
-                                              : lead['referred']?.toString() ??
-                                                  'Not Available',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
+                              print("topppppptags ${provider.leadTags}");
+                              return CustomTagRow(
+                                  label: 'Tags:',
+                                  value: provider.leadTags.isNotEmpty
+                                      ? provider.leadTags.join(', ')
+                                      : 'No Tags Available');
                             }),
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            TabBar(
+                              controller: _tabController,
+                              tabs: const [
+                                Tab(text: 'Internal Notes'),
+                                Tab(text: 'Extra Info'),
+                              ],
+                              labelColor: Colors.black,
+                              unselectedLabelColor: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 400,
+                              child: Consumer<LeadFormProvider>(
+                                  builder: (context, provider, child) {
+                                return TabBarView(
+                                  controller: _tabController,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Text(
+                                        lead['description'] is String &&
+                                                lead['description'].isNotEmpty
+                                            ? provider.parseHtmlString(
+                                                lead['description'])
+                                            : 'No description available',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'EMAIL',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.teal,
+                                            ),
+                                          ),
+                                          CustomRow(
+                                              label: 'Bounce:',
+                                              value: lead['message_bounce']
+                                                      ?.toString() ??
+                                                  'Not Available'),
+                                          const SizedBox(height: 20),
+                                          const Text(
+                                            'ANALYSIS',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.teal,
+                                            ),
+                                          ),
+                                          CustomRow(
+                                              label: 'Assignment Date:',
+                                              value: lead['date_open']
+                                                      ?.toString() ??
+                                                  'Not Available'),
+                                          CustomRow(
+                                              label: 'Closed Date:',
+                                              value: lead['date_closed']
+                                                      ?.toString() ??
+                                                  'Not Available'),
+                                          const SizedBox(height: 20),
+                                          const Text(
+                                            'MARKETING',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.teal,
+                                            ),
+                                          ),
+                                          CustomRow(
+                                              label: 'Campaign:',
+                                              value: lead['campaign_id'] == null
+                                                  ? 'Not Available'
+                                                  : lead['campaign_id'][1] ??
+                                                      'Not Available'),
+                                          CustomRow(
+                                              label: 'Medium:',
+                                              value: lead['medium_id'] == null
+                                                  ? 'Not Available'
+                                                  : lead['medium_id'][1] ??
+                                                      'Not Available'),
+                                          CustomRow(
+                                              label: 'Source:',
+                                              value: lead['source_id'] == null
+                                                  ? 'Not Available'
+                                                  : lead['source_id'][1] ??
+                                                      'Not Available'),
+                                          CustomRow(
+                                            label: 'Referred By:',
+                                            value: lead['referred'] == null
+                                                ? 'Not Available'
+                                                : lead['referred']
+                                                        ?.toString() ??
+                                                    'Not Available',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  Consumer<LeadFormProvider>(
-                      builder: (context, provider, child) {
-                    if (provider.active == false) {
-                      return Positioned(
-                        top: 0,
-                        right: 5,
-                        child: SizedBox(
-                            height: 140,
-                            width: 120,
-                            child: SvgPicture.asset(
-                              "assets/lost.svg",
-                              color: Colors.red,
-                            )),
-                      );
-                    } else {
-                      return SizedBox();
-                    }
-                  }),
-                ],
-              ),
+                    Consumer<LeadFormProvider>(
+                        builder: (context, provider, child) {
+                      if (provider.active == false) {
+                        return Positioned(
+                          top: -20,
+                          right: -20,
+                          child: SizedBox(
+                              height: 180,
+                              width: 180,
+                              child: SvgPicture.asset(
+                                "assets/lost.svg",
+                               
+                              )),
+                        );
+                      } else {
+                        return SizedBox();
+                      }
+                    }),
+                  ],
+                );
+              }),
             ),
     );
   }
@@ -554,7 +559,7 @@ class CustomRow extends StatelessWidget {
               ),
               Expanded(
                 child: Text(
-                  value == null || value == 'false' ? 'None' : value,
+                  value == 'false' ? 'None' : value,
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontSize: 16,
@@ -568,7 +573,7 @@ class CustomRow extends StatelessWidget {
             ],
           ),
           if (value != 'false')
-            value != null && label == 'Address:'
+            label == 'Address:'
                 ? Container(
                     padding: const EdgeInsets.all(8.0),
                     child: SingleChildScrollView(

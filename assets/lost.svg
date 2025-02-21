@@ -1,36 +1,25 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
- "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
- width="739.000000pt" height="761.000000pt" viewBox="0 0 739.000000 761.000000"
- preserveAspectRatio="xMidYMid meet">
-
-<g transform="translate(0.000000,761.000000) scale(0.100000,-0.100000)"
-fill="#000000" stroke="none">
-<path d="M290 7540 c0 -6 584 -596 1298 -1312 1194 -1198 2055 -2063 4711
--4730 536 -538 978 -975 982 -972 5 3 9 657 9 1457 l0 1451 -239 241 c-132
-132 -844 847 -1583 1589 -738 742 -1553 1559 -1809 1817 l-466 469 -1451 0
-c-977 0 -1452 -3 -1452 -10z m4009 -2084 c37 -20 64 -62 57 -90 -3 -12 -71
--88 -151 -169 -117 -118 -145 -151 -140 -167 4 -11 47 -61 96 -111 49 -50 89
--95 89 -101 0 -7 -16 -27 -37 -45 l-36 -34 -22 21 c-12 11 -24 20 -28 20 -13
-0 -267 264 -267 278 0 14 389 412 403 412 4 0 21 -7 36 -14z m466 -456 c58
--37 153 -137 160 -172 4 -16 13 -41 21 -56 19 -38 18 -62 -11 -143 -29 -83
--90 -153 -175 -201 -49 -28 -63 -31 -138 -31 -59 0 -87 5 -100 15 -9 9 -30 23
--47 31 -69 36 -132 120 -148 198 -25 121 14 227 115 313 23 20 46 36 51 36 5
-0 21 9 35 21 24 18 37 20 112 17 69 -3 93 -9 125 -28z m440 -434 c112 -76 178
--191 155 -274 -15 -56 -29 -66 -73 -47 -41 17 -52 33 -63 90 -15 80 -70 134
--118 115 -39 -15 -39 -28 -2 -88 19 -31 52 -90 72 -131 48 -100 44 -141 -26
--210 -91 -91 -192 -76 -316 47 -57 56 -114 158 -114 203 0 64 43 109 90 94 43
--14 62 -43 69 -107 6 -56 11 -68 45 -101 33 -34 43 -38 79 -35 38 3 42 6 45
-31 2 19 -6 42 -22 66 -14 20 -26 42 -26 47 0 6 -9 19 -20 29 -11 10 -20 23
--20 29 0 7 -9 29 -20 51 -11 22 -20 51 -20 65 0 36 33 97 72 132 31 28 37 30
-103 26 55 -4 79 -11 110 -32z m440 -440 l175 -174 -27 -41 c-36 -55 -60 -54
--123 5 -38 36 -55 45 -72 41 -13 -4 -84 -68 -158 -142 -74 -75 -143 -141 -152
--146 -33 -18 -108 46 -108 92 0 5 67 78 150 162 82 84 150 159 150 167 0 8
--20 37 -44 64 -24 26 -46 57 -49 67 -6 21 16 49 38 49 7 0 15 7 19 15 3 8 10
-15 15 15 6 0 89 -78 186 -174z"/>
-<path d="M4610 4871 c-65 -16 -150 -122 -150 -187 0 -33 43 -110 70 -124 10
--5 46 -10 78 -10 54 0 64 4 104 36 23 20 45 41 47 48 2 6 15 24 27 39 34 41
-31 86 -8 142 -41 58 -93 75 -168 56z"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1080" height="1080" viewBox="0 0 1080 1080" xml:space="preserve">
+<desc>Created with Fabric.js 5.2.4</desc>
+<defs>
+</defs>
+<g transform="matrix(1 0 0 1 540 540)" id="fea37905-f9dc-4830-8ee7-4fd58859df67"  >
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1; visibility: hidden;" vector-effect="non-scaling-stroke"  x="-540" y="-540" rx="0" ry="0" width="1080" height="1080" />
+</g>
+<g transform="matrix(1 0 0 1 540 540)" id="d440f116-b940-47f0-bc38-d9bad4c54826"  >
+</g>
+<g transform="matrix(3.15 3.15 -1.59 1.59 650.3 478.85)" id="8a47a2cc-be00-4b1c-b6b9-04085ace9058"  >
+<rect style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  x="-33.0835" y="-33.0835" rx="0" ry="0" width="66.167" height="66.167" />
+</g>
+<g transform="matrix(1 0 0 1 540 540)"  >
+<g style="" vector-effect="non-scaling-stroke"   >
+		<g transform="matrix(0.13 0 0 -0.13 0 0)"  >
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(232,46,46); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  transform=" translate(-3884.63, -3284.83)" d="M 948 6232 C 938 6230 930 6226 930 6224 C 930 6212 6824 331 6831 336 C 6842 342 6842 2788 6831 2810 C 6827 2818 6057 3591 5119 4528 L 3415 6230 L 2190 6233 C 1516 6234 957 6234 948 6232 z M 4370 4422 C 4370 4418 4307 4352 4229 4275 L 4089 4135 L 4185 4045 L 4281 3955 L 4253 3928 L 4225 3901 L 4160 3957 C 4124 3987 4065 4041 4028 4077 L 3960 4142 L 4127 4315 L 4294 4489 L 4332 4458 C 4353 4442 4370 4425 4370 4422 z M 4688 4094 C 4776 4058 4840 3959 4840 3860 C 4840 3787 4824 3746 4776 3692 C 4669 3574 4478 3587 4386 3718 C 4362 3752 4355 3774 4352 3824 C 4347 3903 4360 3946 4410 4009 C 4480 4097 4596 4133 4688 4094 z M 5043 3739 C 5128 3716 5200 3612 5200 3513 C 5200 3484 5196 3460 5190 3460 C 5185 3460 5162 3472 5141 3488 C 5104 3513 5102 3518 5107 3552 C 5114 3599 5092 3636 5044 3656 C 5001 3674 4962 3665 4954 3635 C 4948 3609 4965 3569 5020 3481 C 5073 3395 5075 3347 5026 3296 C 4951 3216 4790 3263 4728 3384 C 4708 3424 4690 3550 4705 3550 C 4709 3550 4730 3545 4751 3538 L 4790 3527 L 4790 3471 C 4790 3436 4796 3406 4806 3392 C 4826 3363 4871 3340 4908 3340 C 4970 3340 4977 3390 4925 3470 C 4878 3545 4850 3601 4850 3625 C 4850 3659 4885 3713 4921 3732 C 4959 3753 4989 3754 5043 3739 z M 5448 3352 L 5590 3214 L 5560 3185 L 5531 3157 L 5473 3214 L 5415 3270 L 5275 3125 L 5135 2980 L 5096 3015 L 5056 3050 L 5096 3088 C 5117 3109 5182 3174 5240 3234 L 5345 3342 L 5292 3388 L 5238 3435 L 5260 3463 C 5272 3478 5287 3490 5294 3490 C 5300 3490 5370 3428 5448 3352 z" stroke-linecap="round" />
+</g>
+		<g transform="matrix(0.13 0 0 -0.13 94.88 -76.48)"  >
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(232,46,46); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  transform=" translate(-4596.22, -3858.44)" d="M 4588 4020 C 4516 3999 4461 3942 4440 3868 C 4419 3798 4475 3708 4546 3694 C 4649 3675 4778 3806 4754 3907 C 4734 3990 4659 4041 4588 4020 z" stroke-linecap="round" />
+</g>
+</g>
 </g>
 </svg>

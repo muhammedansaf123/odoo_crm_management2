@@ -1,13 +1,19 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:odoo_crm_management/dashboard/provider/dashboard_provider.dart';
+import 'package:odoo_crm_management/models/models.dart';
+
 import 'package:odoo_rpc/odoo_rpc.dart';
-import 'package:provider/provider.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OdooClientManager extends ChangeNotifier {
   OdooClient? _client;
+  String? _url;
+  List<LeadItem> _leadItems = [];
+  List<CustomerItem> _customerItems = [];
+  List<SalesPersonItem> _salesPersonItems = [];
   MemoryImage? _profilePicUrl;
   MemoryImage? get profilePicUrl => _profilePicUrl;
   MemoryImage? companyPicUrl;
@@ -15,16 +21,20 @@ class OdooClientManager extends ChangeNotifier {
   OdooClient? get client => _client;
   dynamic _userdetails;
   OdooSession? get currentsession => _currentsession;
+  List<LeadItem> get leadItems => _leadItems;
+  List<CustomerItem> get customerItems => _customerItems;
+  List<SalesPersonItem> get salesPersonItem => _salesPersonItems;
   dynamic get userDetails => _userdetails;
   Map<String, dynamic> _userInfo = {};
   Map<String, dynamic> get userInfo => _userInfo;
+  String? get url => _url;
   bool? isLoading = true;
   List<Map<String, dynamic>> storedaccounts = [];
 
   /// Initializes OdooClient with the provided base URL
   Future<void> initializeOdooClientWithUrl(String url) async {
     _client = OdooClient(url);
-    print("notify1");
+
     notifyListeners();
   }
 
@@ -47,9 +57,6 @@ class OdooClientManager extends ChangeNotifier {
         session.allowedCompanies.map((company) => company.toJson()).toList();
 
     await prefs.setString('allowedCompanies', jsonEncode(allowedCompaniesJson));
-
-    print("Saved allowedCompanies: ${jsonEncode(allowedCompaniesJson)}");
-    print("Saved allowedCompanies: $allowedCompaniesJson");
   }
 
   /// Initializes OdooClient from saved session
@@ -66,7 +73,7 @@ class OdooClientManager extends ChangeNotifier {
     String? jsonString = prefs.getString('allowedCompanies');
     List<dynamic> jsonList = jsonDecode(jsonString!);
     List<Company> allowedCompanies =
-        jsonList.map((json) => Company.fromJson(json)).toList() ?? [];
+        jsonList.map((json) => Company.fromJson(json)).toList();
 
     final session = OdooSession(
       id: sessionId,
@@ -84,11 +91,10 @@ class OdooClientManager extends ChangeNotifier {
     );
     _currentsession = session;
     _client = OdooClient(url, session);
-    print("ansafallowed${allowedCompanies[0].name}");
+    _url = url;
 
     getUserProfile();
-
-    print("notify2");
+    getInstalledModules();
   }
 
   void odooSwitchAccount(int index, BuildContext context) async {
@@ -102,14 +108,12 @@ class OdooClientManager extends ChangeNotifier {
       logindata['password'],
     );
 
-    if (session != null) {
-      await clear();
-      // Update provider with new session
-      await updateSession(session);
-      print("notify6");
-      _currentsession = session;
-      _client = OdooClient(url, session);
-    }
+    await clear();
+
+    await updateSession(session);
+
+    _currentsession = session;
+    _client = OdooClient(url, session);
   }
 
   /// Stores session details for multiple logged-in users
@@ -122,9 +126,8 @@ class OdooClientManager extends ChangeNotifier {
       bool login) async {
     final prefs = await SharedPreferences.getInstance();
     final client = _client;
-    print("profileclient$client");
+
     if (client == null) {
-      print("OdooClient not initialized yet");
       return;
     }
     final response = await client.callKw({
@@ -137,6 +140,7 @@ class OdooClientManager extends ChangeNotifier {
         'fields': ['logo']
       },
     });
+    log(response);
     int userId = prefs.getInt('userId') ?? 0;
 
     final userDetails = await client.callKw({
@@ -162,10 +166,6 @@ class OdooClientManager extends ChangeNotifier {
 
       final imageBase64 = user['image_1920'].toString();
       if (imageBase64.isNotEmpty && imageBase64 != 'false') {
-        final imageData = base64Decode(imageBase64);
-        final imageurl = MemoryImage(Uint8List.fromList(imageData));
-
-        print("ansaf${1}");
         // Retrieve existing accounts
         List<String> accounts = prefs.getStringList('accounts') ?? [];
 
@@ -173,14 +173,14 @@ class OdooClientManager extends ChangeNotifier {
         List<Map<String, dynamic>> storedAccounts = accounts
             .map((account) => jsonDecode(account) as Map<String, dynamic>)
             .toList();
-        print("ansaf${2}");
+
         // Check if the user already exists in stored accounts
         bool userExists = storedAccounts
             .any((account) => account['userId'] == session.userId);
 
         if (!userExists) {
           // Create user session data
-          print("ansaf${3}");
+
           Map<String, dynamic> userData = {
             'url': url,
             'dbName': session.dbName,
@@ -195,7 +195,7 @@ class OdooClientManager extends ChangeNotifier {
           String userJson = jsonEncode(userData);
           accounts.add(userJson);
           await prefs.setStringList('accounts', accounts);
-          print("ansaf${4}");
+
           if (login == true) {
             Navigator.pushNamedAndRemoveUntil(
                 context, '/loading_screen', (Route<dynamic> route) => false);
@@ -206,13 +206,11 @@ class OdooClientManager extends ChangeNotifier {
         }
       }
     }
-
-    print("ansaf account${storedaccounts}");
   }
 
   void setstoreddata() async {
     storedaccounts = await getStoredAccounts();
-    print("notify3");
+
     notifyListeners();
   }
 
@@ -220,7 +218,7 @@ class OdooClientManager extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> getStoredAccounts() async {
     final prefs = await SharedPreferences.getInstance();
     List<String> accounts = prefs.getStringList('accounts') ?? [];
-    print("ansaf${accounts.length}");
+
     return accounts
         .map((account) => jsonDecode(account) as Map<String, dynamic>)
         .toList();
@@ -270,10 +268,8 @@ class OdooClientManager extends ChangeNotifier {
 
       if (userDetails != null && userDetails.isNotEmpty) {
         final user = userDetails[0];
-        print("ansa$user");
-        _userInfo = user;
 
-        print('profileclientttttt$user');
+        _userInfo = user;
 
         final imageBase64 = user['image_1920'].toString();
         if (imageBase64.isNotEmpty && imageBase64 != 'false') {
@@ -285,9 +281,7 @@ class OdooClientManager extends ChangeNotifier {
       print("Error fetching user profile: $e");
     }
     isLoading = false;
-
     notifyListeners();
-    print("notify4");
   }
 
   Future<void> clear() async {
@@ -297,6 +291,98 @@ class OdooClientManager extends ChangeNotifier {
     storedaccounts = [];
   }
 
+  Future<void> getCrmLead() async {
+    _leadItems.clear();
+
+    final leadDetails = await client!.callKw({
+      'model': 'crm.lead',
+      'method': 'search_read',
+      'args': [[]],
+      'kwargs': {
+        'fields': [
+          'name',
+          'user_id',
+          'email_from',
+          'create_date',
+          'stage_id',
+          'partner_id'
+        ],
+      },
+    });
+
+    // log(leadDetails.toString());
+
+    if (leadDetails != null && leadDetails is List) {
+      for (var item in leadDetails) {
+        _leadItems.add(
+          LeadItem(
+              contactname:
+                  item['partner_id'] == false ? null : item['partner_id'][1],
+              id: item['id'],
+              name: item['name'],
+              email: item['email_from'] == false ? null : item['email_from'],
+              createdon: item['create_date'],
+              salesperson: item['user_id'] == false ? null : item['user_id'][1],
+              stage: item['stage_id'][1]),
+        );
+      }
+    }
+
+    //log(_leadItems[0].toString());
+
+    final customerDetails = await client!.callKw({
+      'model': 'res.partner',
+      'method': 'search_read',
+      'args': [[]],
+      'kwargs': {
+        'fields': ['name'],
+      },
+    });
+
+    if (customerDetails != null && customerDetails is List) {
+      for (var item in customerDetails) {
+        _customerItems.add(
+          CustomerItem(
+            id: item['id'],
+            name: item['name'],
+          ),
+        );
+      }
+    }
+    log("ansaf$leadItems");
+    log("ansaf$customerItems");
+  }
+Future<void> getSalesTeamsAndSalesperson() async {
+    try {
+      _salesPersonItems.clear();
+      // Fetch Salespersons
+      final salesPersonResponse = await client!.callKw({
+        'model': 'res.users',
+        'method': 'search_read',
+        'args': [],
+        'kwargs': {
+          'fields': ['name', 'sale_team_id'],
+        },
+      });
+
+      if (salesPersonResponse != null && salesPersonResponse is List) {
+        for (var item in salesPersonResponse) {
+          if (item['sale_team_id'] != false && item['sale_team_id'] is List) {
+            _salesPersonItems.add(
+              SalesPersonItem(
+                teamName: item['sale_team_id'][1],
+                teamid: item['sale_team_id'][0], // Fixed key name
+                id: item['id'],
+                name: item['name'],
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching sales teams or salesperson: $e');
+    }
+  }
   /// Logs out the user
   Future<void> signOut(BuildContext context) async {
     Navigator.pushNamedAndRemoveUntil(
@@ -322,5 +408,26 @@ class OdooClientManager extends ChangeNotifier {
     isLoading = true;
 
     notifyListeners();
+  }
+
+  Future<void> getInstalledModules() async {
+    try {
+      final res = await _client!.callKw({
+        'model': 'ir.module.module',
+        'method': 'search_read',
+        'args': [],
+        'kwargs': {
+          'domain': [
+            ['state', '=', 'installed']
+          ],
+          'fields': ['name', 'shortdesc', 'application'],
+          'limit': 50, // Adjust as needed
+        },
+      });
+
+      log(res.toString()); // List of installed modules
+    } catch (e) {
+      print('Error: $e');
+    }
   }
 }
