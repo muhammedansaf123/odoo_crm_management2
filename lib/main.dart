@@ -16,6 +16,7 @@ import 'package:odoo_crm_management/login/login.dart';
 import 'package:odoo_crm_management/opportunity/opportunity_list.dart';
 import 'package:odoo_crm_management/opportunity/providers/opportunity_form_provider.dart';
 import 'package:odoo_crm_management/opportunity/providers/opportunity_list_provider.dart';
+import 'package:odoo_crm_management/profile/profile.dart';
 import 'package:odoo_crm_management/profile/switch_account.dart';
 import 'package:odoo_crm_management/sales/quotation/quatation_screen.dart';
 import 'package:odoo_crm_management/sales/sales_team.dart';
@@ -59,7 +60,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const AuthCheck(),
         '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const Dashboard(),
-        '/profile': (context) => const UserProfileScreen(),
+        '/profile': (context) => MyHomePage(),
         '/lead': (context) => const Lead(),
         '/opportunity': (context) => const Opportunity(),
         '/sales_team': (context) => const SalesTeam(),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:multi_dropdown/multi_dropdown.dart';
 import 'package:odoo_crm_management/models/models.dart';
 
 import 'package:odoo_rpc/odoo_rpc.dart';
@@ -14,6 +15,7 @@ class OdooClientManager extends ChangeNotifier {
   List<LeadItem> _leadItems = [];
   List<CustomerItem> _customerItems = [];
   List<SalesPersonItem> _salesPersonItems = [];
+  List<DropdownItem<LeadItem>> _dropdownItems = [];
   MemoryImage? _profilePicUrl;
   MemoryImage? get profilePicUrl => _profilePicUrl;
   MemoryImage? companyPicUrl;
@@ -21,6 +23,7 @@ class OdooClientManager extends ChangeNotifier {
   OdooClient? get client => _client;
   dynamic _userdetails;
   OdooSession? get currentsession => _currentsession;
+  List<DropdownItem<LeadItem>> get dropdownItems => _dropdownItems;
   List<LeadItem> get leadItems => _leadItems;
   List<CustomerItem> get customerItems => _customerItems;
   List<SalesPersonItem> get salesPersonItem => _salesPersonItems;
@@ -95,6 +98,7 @@ class OdooClientManager extends ChangeNotifier {
 
     getUserProfile();
     getInstalledModules();
+    await getCrmLead();
   }
 
   void odooSwitchAccount(int index, BuildContext context) async {
@@ -140,7 +144,7 @@ class OdooClientManager extends ChangeNotifier {
         'fields': ['logo']
       },
     });
-    log(response);
+
     int userId = prefs.getInt('userId') ?? 0;
 
     final userDetails = await client.callKw({
@@ -310,25 +314,32 @@ class OdooClientManager extends ChangeNotifier {
       },
     });
 
-    // log(leadDetails.toString());
+    log(leadDetails.toString());
 
     if (leadDetails != null && leadDetails is List) {
       for (var item in leadDetails) {
         _leadItems.add(
           LeadItem(
-              contactname:
-                  item['partner_id'] == false ? null : item['partner_id'][1],
-              id: item['id'],
-              name: item['name'],
-              email: item['email_from'] == false ? null : item['email_from'],
-              createdon: item['create_date'],
-              salesperson: item['user_id'] == false ? null : item['user_id'][1],
-              stage: item['stage_id'][1]),
+            contactname:
+                item['partner_id'] == false ? null : item['partner_id'][1],
+            id: item['id'],
+            name: item['name'],
+            email: item['email_from'] == false ? null : item['email_from'],
+            createdon: item['create_date'],
+            salesperson: item['user_id'] == false ? null : item['user_id'][1],
+            stage: item['stage_id'][1],
+          ),
         );
       }
     }
 
-    //log(_leadItems[0].toString());
+    // Convert _leadItems to dropdownItems
+    _dropdownItems = _leadItems
+        .map((lead) => DropdownItem(label: lead.name!, value: lead))
+        .toList();
+
+    // Log dropdownItems to verify the conversion
+    log(dropdownItems.length.toString());
 
     final customerDetails = await client!.callKw({
       'model': 'res.partner',
@@ -349,10 +360,10 @@ class OdooClientManager extends ChangeNotifier {
         );
       }
     }
-    log("ansaf$leadItems");
-    log("ansaf$customerItems");
+    notifyListeners();
   }
-Future<void> getSalesTeamsAndSalesperson() async {
+
+  Future<void> getSalesTeamsAndSalesperson() async {
     try {
       _salesPersonItems.clear();
       // Fetch Salespersons
@@ -383,6 +394,7 @@ Future<void> getSalesTeamsAndSalesperson() async {
       print('Error fetching sales teams or salesperson: $e');
     }
   }
+
   /// Logs out the user
   Future<void> signOut(BuildContext context) async {
     Navigator.pushNamedAndRemoveUntil(
@@ -424,8 +436,6 @@ Future<void> getSalesTeamsAndSalesperson() async {
           'limit': 50, // Adjust as needed
         },
       });
-
-      log(res.toString()); // List of installed modules
     } catch (e) {
       print('Error: $e');
     }

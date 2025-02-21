@@ -5,6 +5,7 @@ import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart';
+import 'package:multi_dropdown/multi_dropdown.dart';
 import 'package:odoo_crm_management/initilisation.dart';
 import 'package:odoo_crm_management/lead/components/bottomsheet_lost.dart';
 import 'package:odoo_crm_management/lead/providers/lead_list_provider.dart';
@@ -135,6 +136,7 @@ class LeadFormProvider extends ChangeNotifier {
         Provider.of<OdooClientManager>(context, listen: false);
 
     final allleads = odoomanagerprovider.leadItems;
+    final dropdownitems = odoomanagerprovider.dropdownItems;
     final allcustomer = odoomanagerprovider.customerItems;
     final allsalesperson = odoomanagerprovider.salesPersonItem;
     if (_personValue != null) {
@@ -234,131 +236,211 @@ class LeadFormProvider extends ChangeNotifier {
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 10),
-                        DropdownSearch<LeadItem>.multiSelection(
-                          dropdownBuilder: (context, selectedItems) {
-                            if (selectedItems.isEmpty) {
-                              return const Text("Select a Lead");
-                            }
-                            return Wrap(
-                              spacing: 8.0,
-                              runSpacing: 4.0,
-                              children: selectedItems.map<Widget>((item) {
-                                final formatteddate =
-                                    item.createdon!.split(" ")[0];
 
-                                return OpportunityTile(
-                                  close: true,
-                                  onPressed: () {
-                                    setState(
-                                      () {
-                                        selectedItems.remove(item);
-                                      },
-                                    );
-                                  },
-                                  createdOn: formatteddate,
-                                  opportunity: item.name,
-                                  contactName: item.contactname ?? "N/a",
-                                  email: item.email ?? 'N/a',
-                                  stage: item.stage ?? "N/a",
-                                  salesperson: item.salesperson ?? "N/a",
-                                );
-                              }).toList(),
-                            );
-                          },
-                          key: _dropdownKey,
-                          dropdownButtonProps: const DropdownButtonProps(
-                              padding: EdgeInsets.all(0),
-                              icon: Icon(
+                        const SizedBox(height: 10),
+                        if (selectedLeads.isNotEmpty) ...[
+                          Wrap(
+                            spacing: 8.0,
+                            runSpacing: 4.0,
+                            children: selectedLeads.map((lead) {
+                              return OpportunityTile(
+                                close: true,
+                                onPressed: () {
+                                  setState(() {
+                                    selectedLeads.remove(lead);
+                                  });
+                                },
+                                createdOn: lead.createdon ?? "N/a",
+                                opportunity: lead.name ?? "N/a",
+                                contactName: lead.contactname ?? "N/a",
+                                email: lead.email ?? "N/a",
+                                stage: lead.stage ?? "N/a",
+                                salesperson: lead.salesperson ?? "N/a",
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                        ],
+                        MultiDropdown<LeadItem>(
+                          fieldDecoration: const FieldDecoration(
+                              suffixIcon: Icon(
                                 Icons.keyboard_arrow_down_rounded,
                                 size: 20,
-                              )),
-                          items: allleads,
-                          selectedItems: selectedLeads,
-                          itemAsString: (LeadItem? item) => item?.name ?? "",
-                          dropdownDecoratorProps: DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.0),
-                                borderSide: BorderSide.none,
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.0),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.0),
-                                borderSide: BorderSide.none,
-                              ),
-                              hintText: 'Select A Lead',
-                              hintStyle: const TextStyle(
-                                  color: Colors.black, fontSize: 14),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 12.0, horizontal: 16.0),
-                            ),
-                          ),
-                          onChanged: _onLeadSelectionChanged,
-                          popupProps: PopupPropsMultiSelection.menu(
-                            itemBuilder: (context, item, isSelected) {
-                              final formatteddate =
-                                  item.createdon!.split(" ")[0];
-
-                              return OpportunityTile(
+                              border: InputBorder.none),
+                          dropdownItemDecoration: const DropdownItemDecoration(
+                              selectedIcon: Icon(Icons.check)),
+                          items: dropdownitems,
+                          itemBuilder: (item, index, onTap) {
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (!selectedLeads.contains(item)) {
+                                    selectedLeads.add(item.value);
+                                  }
+                                });
+                                print(selectedLeads);
+                              },
+                              child: OpportunityTile(
                                 close: false,
                                 onPressed: () {},
-                                createdOn: formatteddate,
-                                opportunity: item.name,
-                                contactName: item.contactname ?? "N/a",
-                                email: item.email ?? 'N/a',
-                                stage: item.stage ?? "N/a",
-                                salesperson: item.salesperson ?? "N/a",
-                              );
-                            },
-                            showSearchBox: true,
-                            searchFieldProps: TextFieldProps(
-                              controller: searchController,
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.search),
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    searchController.clear();
-                                  },
-                                  icon: const Icon(Icons.close),
-                                ),
-                                hintText: 'Search',
-                                hintStyle: TextStyle(color: Colors.grey[500]),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  borderSide: const BorderSide(
-                                      width: 2, color: Color(0xfff1f1f1)),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  borderSide: const BorderSide(
-                                      width: 2, color: Color(0xfff1f1f1)),
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xfffafafa),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 12.0, horizontal: 16.0),
+                                createdOn: item.value.createdon ?? "N/a",
+                                opportunity: item.value.name ?? "N/a",
+                                contactName: item.value.contactname ?? "N/a",
+                                email: item.value.email ?? "N/a",
+                                stage: item.value.stage ?? "N/a",
+                                salesperson: item.value.salesperson ?? "N/a",
                               ),
-                            ),
-                            menuProps: MenuProps(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4.0),
+                            );
+                          },
+                          selectedItemBuilder: (item) {
+                            return const SizedBox(
+                              child: Text("number of item selected"),
+                            );
+                          },
+                          searchEnabled: true,
+                          dropdownDecoration: const DropdownDecoration(
+                            elevation: 30,
+                            maxHeight:
+                                600, // Increased height to show more items
+                            header: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Text(
+                                'Select Leads',
+                                textAlign: TextAlign.start,
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
                               ),
-                              backgroundColor: Colors.white,
-                              shadowColor: Colors.grey.withOpacity(0.1),
-                              barrierDismissible: true,
-                              clipBehavior: Clip.antiAlias,
-                              animationDuration:
-                                  const Duration(milliseconds: 200),
                             ),
                           ),
-                        )
+                        ),
+
+                        // DropdownSearch<LeadItem>.multiSelection(
+                        //   dropdownBuilder: (context, selectedItems) {
+                        //     if (selectedItems.isEmpty) {
+                        //       return const Text("Select a Lead");
+                        //     }
+                        //     return Wrap(
+                        //       spacing: 8.0,
+                        //       runSpacing: 4.0,
+                        //       children: selectedItems.map<Widget>((item) {
+                        //         final formatteddate =
+                        //             item.createdon!.split(" ")[0];
+
+                        //         return OpportunityTile(
+                        //           close: true,
+                        //           onPressed: () {
+                        //             setState(
+                        //               () {
+                        //                 selectedItems.remove(item);
+                        //               },
+                        //             );
+                        //           },
+                        //           createdOn: formatteddate,
+                        //           opportunity: item.name,
+                        //           contactName: item.contactname ?? "N/a",
+                        //           email: item.email ?? 'N/a',
+                        //           stage: item.stage ?? "N/a",
+                        //           salesperson: item.salesperson ?? "N/a",
+                        //         );
+                        //       }).toList(),
+                        //     );
+                        //   },
+                        //   key: _dropdownKey,
+                        //   dropdownButtonProps: const DropdownButtonProps(
+                        //       padding: EdgeInsets.all(0),
+                        //       icon: Icon(
+                        //         Icons.keyboard_arrow_down_rounded,
+                        //         size: 20,
+                        //       )),
+                        //   items: allleads,
+                        //   selectedItems: selectedLeads,
+                        //   itemAsString: (LeadItem? item) => item?.name ?? "",
+                        //   dropdownDecoratorProps: DropDownDecoratorProps(
+                        //     dropdownSearchDecoration: InputDecoration(
+                        //       border: OutlineInputBorder(
+                        //         borderRadius: BorderRadius.circular(4.0),
+                        //         borderSide: BorderSide.none,
+                        //       ),
+                        //       enabledBorder: OutlineInputBorder(
+                        //         borderRadius: BorderRadius.circular(4.0),
+                        //         borderSide: BorderSide.none,
+                        //       ),
+                        //       focusedBorder: OutlineInputBorder(
+                        //         borderRadius: BorderRadius.circular(4.0),
+                        //         borderSide: BorderSide.none,
+                        //       ),
+                        //       hintText: 'Select A Lead',
+                        //       hintStyle: const TextStyle(
+                        //           color: Colors.black, fontSize: 14),
+                        //       filled: true,
+                        //       fillColor: Colors.white,
+                        //       contentPadding: const EdgeInsets.symmetric(
+                        //           vertical: 12.0, horizontal: 16.0),
+                        //     ),
+                        //   ),
+                        //   onChanged: _onLeadSelectionChanged,
+                        //   popupProps: PopupPropsMultiSelection.menu(
+                        //     itemBuilder: (context, item, isSelected) {
+                        //       final formatteddate =
+                        //           item.createdon!.split(" ")[0];
+
+                        //       return OpportunityTile(
+                        //         close: false,
+                        //         onPressed: () {},
+                        //         createdOn: formatteddate,
+                        //         opportunity: item.name,
+                        //         contactName: item.contactname ?? "N/a",
+                        //         email: item.email ?? 'N/a',
+                        //         stage: item.stage ?? "N/a",
+                        //         salesperson: item.salesperson ?? "N/a",
+                        //       );
+                        //     },
+                        //     showSearchBox: true,
+                        //     searchFieldProps: TextFieldProps(
+                        //       controller: searchController,
+                        //       decoration: InputDecoration(
+                        //         prefixIcon: const Icon(Icons.search),
+                        //         suffixIcon: IconButton(
+                        //           onPressed: () {
+                        //             searchController.clear();
+                        //           },
+                        //           icon: const Icon(Icons.close),
+                        //         ),
+                        //         hintText: 'Search',
+                        //         hintStyle: TextStyle(color: Colors.grey[500]),
+                        //         enabledBorder: OutlineInputBorder(
+                        //           borderRadius: BorderRadius.circular(8.0),
+                        //           borderSide: const BorderSide(
+                        //               width: 2, color: Color(0xfff1f1f1)),
+                        //         ),
+                        //         focusedBorder: OutlineInputBorder(
+                        //           borderRadius: BorderRadius.circular(8.0),
+                        //           borderSide: const BorderSide(
+                        //               width: 2, color: Color(0xfff1f1f1)),
+                        //         ),
+                        //         filled: true,
+                        //         fillColor: const Color(0xfffafafa),
+                        //         contentPadding: const EdgeInsets.symmetric(
+                        //             vertical: 12.0, horizontal: 16.0),
+                        //       ),
+                        //     ),
+                        //     menuProps: MenuProps(
+                        //       elevation: 4,
+                        //       shape: RoundedRectangleBorder(
+                        //         borderRadius: BorderRadius.circular(4.0),
+                        //       ),
+                        //       backgroundColor: Colors.white,
+                        //       shadowColor: Colors.grey.withOpacity(0.1),
+                        //       barrierDismissible: true,
+                        //       clipBehavior: Clip.antiAlias,
+                        //       animationDuration:
+                        //           const Duration(milliseconds: 200),
+                        //     ),
+                        //   ),
+                        // )
                       ],
                       const SizedBox(height: 15),
 

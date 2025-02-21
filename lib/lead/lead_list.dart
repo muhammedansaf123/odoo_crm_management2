@@ -211,7 +211,7 @@ class _LeadState extends State<Lead> {
                                           },
                                         )
                                       : Image.network(
-                                          "${odooinitprovider.url}web/image/res.users/${lead['user_id'][0]}/avatar_1920",
+                                          "https://muhammed-ansaf1.odoo.com/web/image/res.users/${lead['user_id'][0]}/avatar_1920",
                                           headers: {
                                             "Cookie":
                                                 "session_id=${odooinitprovider.currentsession!.id}", // Attach session for auth
@@ -262,15 +262,13 @@ class _LeadState extends State<Lead> {
                           }),
                           if (lead['active'] == null || lead['active'] == false)
                             Positioned(
-                              top: -5
-                              ,
+                              top: -5,
                               right: -2,
                               child: SizedBox(
                                   height: 90,
                                   width: 90,
                                   child: SvgPicture.asset(
                                     "assets/lost.svg",
-                                  
                                   )),
                             ),
                         ],

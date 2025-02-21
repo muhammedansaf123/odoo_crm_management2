@@ -375,45 +375,56 @@ class _LoginPageState extends State<LoginPage> {
                 ],
 
                 // Email Field
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Email",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                AutofillGroup(
+                  child: Column(
+                    children: [
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Email",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _usernameController,
+                        decoration: const InputDecoration(
+                          hintText: 'Email',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.email, color: Colors.teal),
+                        ),
+                        autofillHints: const [
+                          AutofillHints.username,
+                          AutofillHints.email
+                        ],
+                        validator: (value) =>
+                            value!.isEmpty ? 'Enter your email' : null,
+                      ),
+                      const SizedBox(height: 10),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Password",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Password',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.lock, color: Colors.teal),
+                        ),
+                        autofillHints: const [AutofillHints.password],
+                        validator: (value) =>
+                            value!.isEmpty ? 'Enter your password' : null,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email, color: Colors.teal),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Enter your email' : null,
-                ),
-                const SizedBox(height: 10),
-
-                // Password Field
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Password",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock, color: Colors.teal),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Enter your password' : null,
                 ),
                 const SizedBox(height: 10),
 

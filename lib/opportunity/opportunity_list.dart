@@ -220,7 +220,7 @@ class _OpportunityState extends State<Opportunity> {
                                           },
                                         )
                                       : Image.network(
-                                          "${odooinitprovider.url}web/image/res.users/${opportunity['user_id'][0]}/avatar_1920",
+                                          "${odooinitprovider.url}/web/image/res.users/${opportunity['user_id'][0]}/avatar_1920",
                                           headers: {
                                             "Cookie":
                                                 "session_id=${odooinitprovider.currentsession!.id}", // Attach session for auth
